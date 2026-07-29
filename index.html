@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,7 +38,7 @@
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
 
-    /* ১ নম্বর পেজের জন্য নিবেদিত স্টাইল */
+    /* ক্যালকুলেটর পেজের জন্য স্টাইল */
     .calc-page-body {
       font-family: 'Segoe UI', sans-serif;
       background: #f9f9f9;
@@ -210,8 +210,8 @@
             </div>
           </div>
 
-          <!-- Expense Entry Form (Always visible for easy entry) -->
-          <form id="addExpenseForm" onsubmit="handleExpenseSubmit(event)" class="bg-white/80 p-5 rounded-2xl border border-blue-100 space-y-4 shadow-sm">
+          <!-- Expense Entry Form -->
+          <form id="addExpenseForm" onsubmit="handleExpenseSubmit(event)" class="bg-white/80 p-5 rounded-2xl border border-blue-100 space-y-4 shadow-sm hidden">
             <input type="hidden" id="editingExpenseId" value="">
             <h3 id="formTitle" class="text-sm font-bold text-slate-700 flex items-center gap-2">
               <i class="fa-solid fa-cart-plus text-blue-600"></i> Add New Market Expense
@@ -255,7 +255,7 @@
             </div>
           </form>
 
-          <!-- Expenses List Table -->
+          <!-- Expenses List Table (Optimized for Mobile) -->
           <div class="overflow-x-auto rounded-2xl border border-blue-100 bg-white/70">
             <table class="w-full text-left text-xs sm:text-sm text-slate-700">
               <thead class="bg-blue-50/80 text-blue-900 uppercase text-[10px] sm:text-[11px] tracking-wider font-bold border-b border-blue-100">
@@ -285,6 +285,7 @@
             <h2 class="text-lg font-bold text-slate-800">Admin Control Panel</h2>
           </div>
           
+          <!-- Admin Actions -->
           <div class="flex flex-wrap gap-2">
             <button onclick="promptCalcAuth()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm">
               <i class="fa-solid fa-calculator"></i> Open Mess Calculator
@@ -298,6 +299,7 @@
           </div>
         </div>
 
+        <!-- Add New User Form -->
         <div class="bg-white/80 p-5 rounded-2xl border border-blue-100 space-y-3">
           <h3 class="text-xs font-bold text-slate-600 uppercase tracking-wider">Create New Member</h3>
           <form onsubmit="handleAddUser(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -310,6 +312,7 @@
           </form>
         </div>
 
+        <!-- Users Management Table -->
         <div>
           <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Member Account List</h3>
           <div class="overflow-x-auto rounded-2xl border border-blue-100 bg-white/70">
@@ -333,7 +336,7 @@
     </div>
   </div>
 
-  <!-- CALCULATOR FULL PAGE VIEW -->
+  <!-- MESS CALCULATOR (FULL PAGE VIEW) -->
   <div id="calculatorFullPageView" class="hidden calc-page-body min-h-screen">
     <div class="max-w-4xl mx-auto mb-3 flex justify-between items-center px-2">
       <button onclick="closeCalculatorFullPage()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-md">
@@ -419,7 +422,7 @@
     </div>
   </div>
 
-  <!-- MODALS -->
+  <!-- ADMIN PASSWORD MODAL FOR CALCULATOR -->
   <div id="calcAuthModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="soft-card rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4 bg-white">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -438,6 +441,7 @@
     </div>
   </div>
 
+  <!-- PDF REPORT MODAL -->
   <div id="reportModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="soft-card rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 bg-white">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -489,6 +493,7 @@
     </div>
   </div>
 
+  <!-- DELETE MONTH DATA MODAL -->
   <div id="deleteMonthModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="soft-card rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 bg-white border-2 border-rose-100">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -537,6 +542,7 @@
     </div>
   </div>
 
+  <!-- EDIT USER MODAL -->
   <div id="editUserModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="soft-card rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4 bg-white">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -560,6 +566,7 @@
     </div>
   </div>
 
+  <!-- LOGIN MODAL -->
   <div id="loginModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="soft-card rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-2xl space-y-5 bg-white">
       <div class="flex justify-between items-center">
@@ -583,10 +590,11 @@
     </div>
   </div>
 
-  <!-- FIREBASE SDKs -->
+  <!-- FIREBASE SDKs (Compat Vers) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
+  <!-- ES Module Modules for RTDB and Firebase Calculator -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, onValue, remove, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -629,15 +637,17 @@
     let currentUser = JSON.parse(localStorage.getItem('boysHuntsUser')) || null;
     let activeMemberDocId = localStorage.getItem('boysHuntsActiveMember') || null;
     
+    // Default Created Months
     let createdMonths = JSON.parse(localStorage.getItem('boysHuntsCreatedMonths')) || [
       { month: new Date().getMonth(), year: new Date().getFullYear() }
     ];
 
     let selectedDetailMonth = createdMonths[0].month;
     let selectedDetailYear = createdMonths[0].year;
+
     let expenseUnsubscribe = null;
 
-    // CALCULATOR APP VARIABLES
+    // CALCULATOR ENGINE VARIABLES
     let totalUtility = 0;
     let totalBazar = 0;
     let millRate = 0;
@@ -689,6 +699,7 @@
       }
     }
 
+    // AUTH UI
     function updateAuthUI() {
       const container = document.getElementById('authSection');
       const adminSection = document.getElementById('adminSection');
@@ -770,6 +781,7 @@
       showDashboard();
     }
 
+    // CREATE NEW MONTH
     window.createNewMonth = function() {
       if (!currentUser) {
         showAlert('Please login first to create a month!', 'error');
@@ -793,6 +805,7 @@
       loadDashboardData();
     }
 
+    // DASHBOARD LOGIC (Renders cards for created months)
     function loadDashboardData() {
       db.collection('app_users').where('role', '==', 'member').onSnapshot(snapshot => {
         const grid = document.getElementById('usersGrid');
@@ -817,7 +830,7 @@
 
               const cardDiv = document.createElement('div');
               cardDiv.className = "soft-card hover:border-blue-300 rounded-2xl p-5 transition-all duration-200 cursor-pointer flex justify-between items-center group";
-              cardDiv.onclick = () => openMemberDetails(userId, userData.name, userData.username, mObj.month, mObj.year);
+              cardDiv.onclick = () => window.openMemberDetails(userId, userData.name, userData.username, mObj.month, mObj.year);
 
               cardDiv.innerHTML = `
                 <div class="space-y-1">
@@ -832,6 +845,7 @@
               `;
               grid.appendChild(cardDiv);
 
+              // Fetch total expense for this user and specific month
               db.collection('expenses').where('userDocId', '==', userId).onSnapshot(expSnap => {
                 let total = 0;
                 expSnap.forEach(expDoc => {
@@ -876,6 +890,7 @@
       });
     }
 
+    // MEMBER DETAILS
     window.openMemberDetails = function(userDocId, name, username, monthIdx, yearNum) {
       activeMemberDocId = userDocId;
       selectedDetailMonth = monthIdx;
@@ -892,6 +907,14 @@
       document.getElementById('memberTotalExpenseLabel').innerText = `Personal Expense (${monthLabel})`;
 
       resetExpenseForm();
+
+      const entryForm = document.getElementById('addExpenseForm');
+      if (currentUser && (currentUser.docId === userDocId || currentUser.username === username || currentUser.role === 'admin')) {
+        entryForm.classList.remove('hidden');
+      } else {
+        entryForm.classList.add('hidden');
+      }
+
       fetchMemberExpenses(userDocId, selectedDetailMonth, selectedDetailYear);
     }
 
@@ -902,8 +925,6 @@
         .where('userDocId', '==', userDocId)
         .onSnapshot(snapshot => {
           renderExpenseTable(snapshot, mIdx, yNum);
-        }, err => {
-          console.error("Expense fetch error:", err);
         });
     }
 
@@ -929,7 +950,11 @@
         return;
       }
 
-      docs.sort((a, b) => b.parsedDate - a.parsedDate);
+      docs.sort((a, b) => {
+        let timeA = a.parsedDate ? a.parsedDate.getTime() : Date.now();
+        let timeB = b.parsedDate ? b.parsedDate.getTime() : Date.now();
+        return timeB - timeA;
+      });
 
       docs.forEach(exp => {
         userTotal += Number(exp.amount || 0);
@@ -937,6 +962,7 @@
         const dateStr = expDate ? expDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-';
         const timeStr = expDate ? expDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
         
+        const canModify = currentUser && (currentUser.docId === activeMemberDocId || currentUser.username === activeMemberDocId || currentUser.role === 'admin');
         const qtyText = exp.quantity ? `${exp.quantity} ${exp.unit}` : '-';
 
         const row = `
@@ -949,14 +975,16 @@
             <td class="py-2.5 px-2 sm:p-4"><span class="text-[10px] sm:text-xs bg-blue-100 text-blue-800 font-semibold px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg inline-block whitespace-nowrap">${qtyText}</span></td>
             <td class="py-2.5 px-2 sm:p-4 text-blue-600 font-extrabold text-xs sm:text-sm whitespace-nowrap">৳ ${exp.amount}</td>
             <td class="py-2.5 px-2 sm:p-4 text-right">
-              <div class="flex justify-end gap-0.5 sm:gap-1">
-                <button onclick="startEditExpense('${exp.id}', '${exp.remark}', '${exp.quantity || ''}', '${exp.unit || 'kg'}', '${exp.amount}')" class="text-blue-600 hover:bg-blue-100 p-1 sm:p-2 rounded-lg transition" title="Edit">
-                  <i class="fa-solid fa-pen-to-square text-xs sm:text-sm"></i>
-                </button>
-                <button onclick="deleteExpense('${exp.id}')" class="text-rose-600 hover:bg-rose-100 p-1 sm:p-2 rounded-lg transition" title="Delete">
-                  <i class="fa-solid fa-trash text-xs sm:text-sm"></i>
-                </button>
-              </div>
+              ${canModify ? `
+                <div class="flex justify-end gap-0.5 sm:gap-1">
+                  <button onclick="startEditExpense('${exp.id}', '${exp.remark}', '${exp.quantity || ''}', '${exp.unit || 'kg'}', '${exp.amount}')" class="text-blue-600 hover:bg-blue-100 p-1 sm:p-2 rounded-lg transition" title="Edit">
+                    <i class="fa-solid fa-pen-to-square text-xs sm:text-sm"></i>
+                  </button>
+                  <button onclick="deleteExpense('${exp.id}')" class="text-rose-600 hover:bg-rose-100 p-1 sm:p-2 rounded-lg transition" title="Delete">
+                    <i class="fa-solid fa-trash text-xs sm:text-sm"></i>
+                  </button>
+                </div>
+              ` : `<span class="text-[10px] sm:text-xs text-slate-400 font-medium">View</span>`}
             </td>
           </tr>
         `;
@@ -974,6 +1002,15 @@
       }
     }
 
+    window.showDashboard = function() {
+      activeMemberDocId = null;
+      localStorage.removeItem('boysHuntsActiveMember');
+      document.getElementById('memberDetailSection').classList.add('hidden');
+      document.getElementById('dashboardSection').classList.remove('hidden');
+      loadDashboardData();
+    }
+
+    // EXPENSE FORM ACTIONS
     window.handleExpenseSubmit = async function(e) {
       e.preventDefault();
       const editingId = document.getElementById('editingExpenseId').value;
@@ -1047,121 +1084,7 @@
       }
     }
 
-    window.showDashboard = function() {
-      activeMemberDocId = null;
-      localStorage.removeItem('boysHuntsActiveMember');
-      document.getElementById('memberDetailSection').classList.add('hidden');
-      document.getElementById('dashboardSection').classList.remove('hidden');
-      loadDashboardData();
-    }
-
-    window.handleAddUser = async function(e) {
-      e.preventDefault();
-      const displayName = document.getElementById('newDisplayName').value.trim();
-      const username = document.getElementById('newUsername').value.trim().toLowerCase();
-      const pass = document.getElementById('newUserPass').value.trim();
-
-      try {
-        const userRef = db.collection('app_users').doc(username);
-        const doc = await userRef.get();
-
-        if (doc.exists) {
-          showAlert('This User Name has already been taken!', 'error');
-          return;
-        }
-
-        await userRef.set({
-          name: displayName,
-          username: username,
-          password: pass,
-          role: 'member'
-        });
-
-        showAlert(`User '${displayName}' created successfully!`, 'success');
-        document.getElementById('newDisplayName').value = '';
-        document.getElementById('newUsername').value = '';
-        document.getElementById('newUserPass').value = '';
-      } catch (err) {
-        showAlert('Error: ' + err.message, 'error');
-      }
-    }
-
-    function loadAdminUserList() {
-      db.collection('app_users').where('role', '==', 'member').onSnapshot(snapshot => {
-        const tbody = document.getElementById('adminUserTableBody');
-        tbody.innerHTML = '';
-
-        if(snapshot.empty) {
-          tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 text-xs">No member accounts found</td></tr>`;
-          return;
-        }
-
-        snapshot.forEach(doc => {
-          const u = doc.data();
-          const row = `
-            <tr class="hover:bg-blue-50/50 transition">
-              <td class="py-2.5 px-2 sm:p-3.5 font-bold text-xs sm:text-sm text-slate-800">${u.name}</td>
-              <td class="py-2.5 px-2 sm:p-3.5 font-mono text-[11px] sm:text-xs text-blue-600 font-bold">${u.username}</td>
-              <td class="py-2.5 px-2 sm:p-3.5 font-mono text-[11px] sm:text-xs text-slate-500">${u.password}</td>
-              <td class="py-2.5 px-2 sm:p-3.5 text-right space-x-1">
-                <button onclick="openEditUserModal('${doc.id}', '${u.name}', '${u.password}')" class="text-blue-600 hover:bg-blue-100 p-1 sm:p-2 rounded-lg transition" title="Edit">
-                  <i class="fa-solid fa-pen-to-square text-xs sm:text-sm"></i>
-                </button>
-                <button onclick="deleteUser('${doc.id}')" class="text-rose-600 hover:bg-rose-100 p-1 sm:p-2 rounded-lg transition" title="Delete">
-                  <i class="fa-solid fa-trash text-xs sm:text-sm"></i>
-                </button>
-              </td>
-            </tr>
-          `;
-          tbody.innerHTML += row;
-        });
-      });
-    }
-
-    window.openEditUserModal = function(docId, name, pass) {
-      document.getElementById('editDocId').value = docId;
-      document.getElementById('editDisplayName').value = name;
-      document.getElementById('editUserPass').value = pass;
-      toggleEditUserModal(true);
-    }
-
-    window.toggleEditUserModal = function(show) {
-      document.getElementById('editUserModal').classList.toggle('hidden', !show);
-    }
-
-    window.handleUpdateUser = async function(e) {
-      e.preventDefault();
-      const docId = document.getElementById('editDocId').value;
-      const newName = document.getElementById('editDisplayName').value.trim();
-      const newPass = document.getElementById('editUserPass').value.trim();
-
-      try {
-        await db.collection('app_users').doc(docId).update({
-          name: newName,
-          password: newPass
-        });
-        toggleEditUserModal(false);
-        showAlert('Member info updated successfully!', 'success');
-      } catch (err) {
-        showAlert('Error: ' + err.message, 'error');
-      }
-    }
-
-    window.deleteUser = async function(username) {
-      if (confirm(`Are you sure you want to delete the user '${username}'?`)) {
-        try {
-          await db.collection('app_users').doc(username).delete();
-          const expSnap = await db.collection('expenses').where('userDocId', '==', username).get();
-          expSnap.forEach(async (doc) => {
-            await db.collection('expenses').doc(doc.id).delete();
-          });
-          showAlert('Member deleted successfully!', 'info');
-        } catch (err) {
-          showAlert('Error: ' + err.message, 'error');
-        }
-      }
-    }
-
+    // ADMIN REPORT MODAL & PDF GENERATION
     window.openReportModal = async function() {
       const userSelect = document.getElementById('reportUserSelect');
       userSelect.innerHTML = `<option value="all">All Members</option>`;
@@ -1305,6 +1228,7 @@
       }
     }
 
+    // DELETE MONTH DATA FUNCTIONS (ADMIN)
     window.openDeleteMonthModal = function() {
       toggleDeleteMonthModal(true);
     }
@@ -1319,7 +1243,7 @@
 
       const monthName = monthsArr[targetMonth];
 
-      if (!confirm(`Are you sure you want to permanently delete all market data for ${monthName} ${targetYear} from the database? Action cannot be undone.`)) {
+      if (!confirm(`Are you sure you want to permanently delete all market data for ${monthName} ${targetYear} from the database? This action cannot be undone.`)) {
         return;
       }
 
@@ -1358,6 +1282,116 @@
 
       } catch (err) {
         showAlert('Error deleting data: ' + err.message, 'error');
+      }
+    }
+
+    // ADMIN USER MANAGEMENT
+    window.handleAddUser = async function(e) {
+      e.preventDefault();
+      if (!currentUser || currentUser.role !== 'admin') return;
+
+      const displayName = document.getElementById('newDisplayName').value.trim();
+      const username = document.getElementById('newUsername').value.trim().toLowerCase();
+      const pass = document.getElementById('newUserPass').value.trim();
+
+      try {
+        const userRef = db.collection('app_users').doc(username);
+        const doc = await userRef.get();
+
+        if (doc.exists) {
+          showAlert('This User Name has already been taken!', 'error');
+          return;
+        }
+
+        await userRef.set({
+          name: displayName,
+          username: username,
+          password: pass,
+          role: 'member'
+        });
+
+        showAlert(`User '${displayName}' created successfully!`, 'success');
+        document.getElementById('newDisplayName').value = '';
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newUserPass').value = '';
+      } catch (err) {
+        showAlert('Error: ' + err.message, 'error');
+      }
+    }
+
+    function loadAdminUserList() {
+      db.collection('app_users').where('role', '==', 'member').onSnapshot(snapshot => {
+        const tbody = document.getElementById('adminUserTableBody');
+        tbody.innerHTML = '';
+
+        if(snapshot.empty) {
+          tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 text-xs">No member accounts found</td></tr>`;
+          return;
+        }
+
+        snapshot.forEach(doc => {
+          const u = doc.data();
+          const row = `
+            <tr class="hover:bg-blue-50/50 transition">
+              <td class="py-2.5 px-2 sm:p-3.5 font-bold text-xs sm:text-sm text-slate-800">${u.name}</td>
+              <td class="py-2.5 px-2 sm:p-3.5 font-mono text-[11px] sm:text-xs text-blue-600 font-bold">${u.username}</td>
+              <td class="py-2.5 px-2 sm:p-3.5 font-mono text-[11px] sm:text-xs text-slate-500">${u.password}</td>
+              <td class="py-2.5 px-2 sm:p-3.5 text-right space-x-1">
+                <button onclick="openEditUserModal('${doc.id}', '${u.name}', '${u.password}')" class="text-blue-600 hover:bg-blue-100 p-1 sm:p-2 rounded-lg transition" title="Edit">
+                  <i class="fa-solid fa-pen-to-square text-xs sm:text-sm"></i>
+                </button>
+                <button onclick="deleteUser('${doc.id}')" class="text-rose-600 hover:bg-rose-100 p-1 sm:p-2 rounded-lg transition" title="Delete">
+                  <i class="fa-solid fa-trash text-xs sm:text-sm"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+          tbody.innerHTML += row;
+        });
+      });
+    }
+
+    window.openEditUserModal = function(docId, name, pass) {
+      document.getElementById('editDocId').value = docId;
+      document.getElementById('editDisplayName').value = name;
+      document.getElementById('editUserPass').value = pass;
+      toggleEditUserModal(true);
+    }
+
+    window.toggleEditUserModal = function(show) {
+      document.getElementById('editUserModal').classList.toggle('hidden', !show);
+    }
+
+    window.handleUpdateUser = async function(e) {
+      e.preventDefault();
+      const docId = document.getElementById('editDocId').value;
+      const newName = document.getElementById('editDisplayName').value.trim();
+      const newPass = document.getElementById('editUserPass').value.trim();
+
+      try {
+        await db.collection('app_users').doc(docId).update({
+          name: newName,
+          password: newPass
+        });
+        toggleEditUserModal(false);
+        showAlert('Member info updated successfully!', 'success');
+      } catch (err) {
+        showAlert('Error: ' + err.message, 'error');
+      }
+    }
+
+    window.deleteUser = async function(username) {
+      if (confirm(`Are you sure you want to delete the user '${username}'?`)) {
+        try {
+          await db.collection('app_users').doc(username).delete();
+          const expSnap = await db.collection('expenses').where('userDocId', '==', username).get();
+          expSnap.forEach(async (doc) => {
+            await db.collection('expenses').doc(doc.id).delete();
+          });
+          showAlert('Member deleted successfully!', 'info');
+        } catch (err) {
+          showAlert('Error: ' + err.message, 'error');
+        }
       }
     }
 
@@ -1773,7 +1807,7 @@
       reportWindow.document.close();
     }
 
-    // --- AUTHENTICATION & FULL PAGE SWITCH FUNCTIONS ---
+    // AUTHENTICATION & SWITCH FUNCTIONS
     window.promptCalcAuth = function() {
       document.getElementById('calcAdminPass').value = '';
       toggleCalcAuthModal(true);
