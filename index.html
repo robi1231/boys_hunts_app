@@ -38,7 +38,7 @@
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
 
-    /* ক্যালকুলেটর পেজের জন্য স্টাইল */
+    /* MESS CALCULATOR STYLES */
     .calc-page-body {
       font-family: 'Segoe UI', sans-serif;
       background: #f9f9f9;
@@ -210,7 +210,7 @@
             </div>
           </div>
 
-          <!-- Expense Entry Form -->
+          <!-- Expense Entry Form (Hidden if not logged in / not authorized) -->
           <form id="addExpenseForm" onsubmit="handleExpenseSubmit(event)" class="bg-white/80 p-5 rounded-2xl border border-blue-100 space-y-4 shadow-sm hidden">
             <input type="hidden" id="editingExpenseId" value="">
             <h3 id="formTitle" class="text-sm font-bold text-slate-700 flex items-center gap-2">
@@ -255,7 +255,7 @@
             </div>
           </form>
 
-          <!-- Expenses List Table (Optimized for Mobile) -->
+          <!-- Expenses List Table -->
           <div class="overflow-x-auto rounded-2xl border border-blue-100 bg-white/70">
             <table class="w-full text-left text-xs sm:text-sm text-slate-700">
               <thead class="bg-blue-50/80 text-blue-900 uppercase text-[10px] sm:text-[11px] tracking-wider font-bold border-b border-blue-100">
@@ -285,7 +285,6 @@
             <h2 class="text-lg font-bold text-slate-800">Admin Control Panel</h2>
           </div>
           
-          <!-- Admin Actions -->
           <div class="flex flex-wrap gap-2">
             <button onclick="promptCalcAuth()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm">
               <i class="fa-solid fa-calculator"></i> Open Mess Calculator
@@ -299,7 +298,6 @@
           </div>
         </div>
 
-        <!-- Add New User Form -->
         <div class="bg-white/80 p-5 rounded-2xl border border-blue-100 space-y-3">
           <h3 class="text-xs font-bold text-slate-600 uppercase tracking-wider">Create New Member</h3>
           <form onsubmit="handleAddUser(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -312,7 +310,6 @@
           </form>
         </div>
 
-        <!-- Users Management Table -->
         <div>
           <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Member Account List</h3>
           <div class="overflow-x-auto rounded-2xl border border-blue-100 bg-white/70">
@@ -336,7 +333,7 @@
     </div>
   </div>
 
-  <!-- MESS CALCULATOR (FULL PAGE VIEW) -->
+  <!-- MESS CALCULATOR VIEW -->
   <div id="calculatorFullPageView" class="hidden calc-page-body min-h-screen">
     <div class="max-w-4xl mx-auto mb-3 flex justify-between items-center px-2">
       <button onclick="closeCalculatorFullPage()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-md">
@@ -422,7 +419,7 @@
     </div>
   </div>
 
-  <!-- ADMIN PASSWORD MODAL FOR CALCULATOR -->
+  <!-- MODALS -->
   <div id="calcAuthModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="soft-card rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4 bg-white">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -441,7 +438,6 @@
     </div>
   </div>
 
-  <!-- PDF REPORT MODAL -->
   <div id="reportModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="soft-card rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 bg-white">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -493,7 +489,6 @@
     </div>
   </div>
 
-  <!-- DELETE MONTH DATA MODAL -->
   <div id="deleteMonthModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="soft-card rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 bg-white border-2 border-rose-100">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -542,7 +537,6 @@
     </div>
   </div>
 
-  <!-- EDIT USER MODAL -->
   <div id="editUserModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="soft-card rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4 bg-white">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -566,7 +560,6 @@
     </div>
   </div>
 
-  <!-- LOGIN MODAL -->
   <div id="loginModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="soft-card rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-2xl space-y-5 bg-white">
       <div class="flex justify-between items-center">
@@ -590,11 +583,10 @@
     </div>
   </div>
 
-  <!-- FIREBASE SDKs (Compat Vers) -->
+  <!-- FIREBASE SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-  <!-- ES Module Modules for RTDB and Firebase Calculator -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, onValue, remove, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -674,13 +666,13 @@
       if (activeMemberDocId) {
         db.collection('app_users').doc(activeMemberDocId).get().then(doc => {
           if (doc.exists) {
-            openMemberDetails(doc.id, doc.data().name, doc.data().username, selectedDetailMonth, selectedDetailYear);
+            window.openMemberDetails(doc.id, doc.data().name, doc.data().username, selectedDetailMonth, selectedDetailYear);
           } else {
-            showDashboard();
+            window.showDashboard();
           }
-        }).catch(() => showDashboard());
+        }).catch(() => window.showDashboard());
       } else {
-        showDashboard();
+        window.showDashboard();
       }
 
       initCalculatorEngine();
@@ -778,7 +770,7 @@
       localStorage.removeItem('boysHuntsUser');
       updateAuthUI();
       showAlert('Logged out successfully!', 'info');
-      showDashboard();
+      window.showDashboard();
     }
 
     // CREATE NEW MONTH
@@ -805,7 +797,7 @@
       loadDashboardData();
     }
 
-    // DASHBOARD LOGIC (Renders cards for created months)
+    // DASHBOARD LOGIC (All member cards are visible to everyone)
     function loadDashboardData() {
       db.collection('app_users').where('role', '==', 'member').onSnapshot(snapshot => {
         const grid = document.getElementById('usersGrid');
@@ -819,56 +811,52 @@
         snapshot.forEach(doc => {
           const userData = doc.data();
           const userId = doc.id;
-          
-          const isUserOwner = currentUser && currentUser.docId === userId;
-          const isAdmin = currentUser && currentUser.role === 'admin';
 
-          if (isAdmin || isUserOwner || !currentUser) {
-            createdMonths.forEach(mObj => {
-              const monthLabel = `${monthsArr[mObj.month]} ${mObj.year}`;
-              const cardId = `card-${userId}-${mObj.month}-${mObj.year}`;
+          // Everyone can see all members' market cards
+          createdMonths.forEach(mObj => {
+            const monthLabel = `${monthsArr[mObj.month]} ${mObj.year}`;
+            const cardId = `card-${userId}-${mObj.month}-${mObj.year}`;
 
-              const cardDiv = document.createElement('div');
-              cardDiv.className = "soft-card hover:border-blue-300 rounded-2xl p-5 transition-all duration-200 cursor-pointer flex justify-between items-center group";
-              cardDiv.onclick = () => window.openMemberDetails(userId, userData.name, userData.username, mObj.month, mObj.year);
+            const cardDiv = document.createElement('div');
+            cardDiv.className = "soft-card hover:border-blue-300 rounded-2xl p-5 transition-all duration-200 cursor-pointer flex justify-between items-center group";
+            cardDiv.onclick = () => window.openMemberDetails(userId, userData.name, userData.username, mObj.month, mObj.year);
 
-              cardDiv.innerHTML = `
-                <div class="space-y-1">
-                  <h3 class="text-base font-bold text-slate-800 group-hover:text-blue-600 transition">${userData.name}</h3>
-                  <p class="text-xs text-slate-500 font-mono">@${userData.username}</p>
-                  <span class="inline-block mt-2 text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full">${monthLabel}</span>
-                </div>
-                <div class="text-right">
-                  <span id="${cardId}" class="text-xl font-black text-blue-600 block">৳ 0</span>
-                  <span class="text-[11px] text-slate-500 group-hover:text-blue-600 font-semibold transition">Details <i class="fa-solid fa-chevron-right text-[9px] ml-0.5"></i></span>
-                </div>
-              `;
-              grid.appendChild(cardDiv);
+            cardDiv.innerHTML = `
+              <div class="space-y-1">
+                <h3 class="text-base font-bold text-slate-800 group-hover:text-blue-600 transition">${userData.name}</h3>
+                <p class="text-xs text-slate-500 font-mono">@${userData.username}</p>
+                <span class="inline-block mt-2 text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full">${monthLabel}</span>
+              </div>
+              <div class="text-right">
+                <span id="${cardId}" class="text-xl font-black text-blue-600 block">৳ 0</span>
+                <span class="text-[11px] text-slate-500 group-hover:text-blue-600 font-semibold transition">Details <i class="fa-solid fa-chevron-right text-[9px] ml-0.5"></i></span>
+              </div>
+            `;
+            grid.appendChild(cardDiv);
 
-              // Fetch total expense for this user and specific month
-              db.collection('expenses').where('userDocId', '==', userId).onSnapshot(expSnap => {
-                let total = 0;
-                expSnap.forEach(expDoc => {
-                  const expData = expDoc.data();
-                  if(expData.createdAt) {
-                    const d = expData.createdAt.toDate ? expData.createdAt.toDate() : new Date(expData.createdAt);
-                    if(d.getMonth() === mObj.month && d.getFullYear() === mObj.year) {
-                      total += Number(expData.amount || 0);
-                    }
+            // Fetch total expense for this user and month
+            db.collection('expenses').where('userDocId', '==', userId).onSnapshot(expSnap => {
+              let total = 0;
+              expSnap.forEach(expDoc => {
+                const expData = expDoc.data();
+                if(expData.createdAt) {
+                  const d = expData.createdAt.toDate ? expData.createdAt.toDate() : new Date(expData.createdAt);
+                  if(d.getMonth() === mObj.month && d.getFullYear() === mObj.year) {
+                    total += Number(expData.amount || 0);
                   }
-                });
-                
-                const totalEl = document.getElementById(cardId);
-                if(totalEl) totalEl.innerText = `৳ ${total}`;
-                calculateGrandTotal();
+                }
               });
+              
+              const totalEl = document.getElementById(cardId);
+              if(totalEl) totalEl.innerText = `৳ ${total}`;
+              calculateGrandTotal();
             });
-          }
+          });
         });
 
         if (currentUser && currentUser.role === 'member') {
-          document.getElementById('gridTitle').innerHTML = `<i class="fa-solid fa-user text-blue-600"></i> Your Market Cards`;
-          document.getElementById('dashboardSubtitle').innerText = `Your personal market expenses dashboard`;
+          document.getElementById('gridTitle').innerHTML = `<i class="fa-solid fa-users text-blue-600"></i> Members Market Cards`;
+          document.getElementById('dashboardSubtitle').innerText = `Personal and Mess market expenses dashboard`;
         } else {
           document.getElementById('gridTitle').innerHTML = `<i class="fa-solid fa-users text-blue-600"></i> Members Market List`;
           document.getElementById('dashboardSubtitle').innerText = `Total mess market expense dashboard`;
@@ -881,16 +869,13 @@
         let grandTotal = 0;
         snap.forEach(doc => {
           const expData = doc.data();
-          if (currentUser && currentUser.role === 'member' && expData.userDocId !== currentUser.docId) {
-            return;
-          }
           grandTotal += Number(expData.amount || 0);
         });
         document.getElementById('grandTotal').innerText = `৳ ${grandTotal}`;
       });
     }
 
-    // MEMBER DETAILS
+    // MEMBER DETAILS (Openable by anyone to VIEW data)
     window.openMemberDetails = function(userDocId, name, username, monthIdx, yearNum) {
       activeMemberDocId = userDocId;
       selectedDetailMonth = monthIdx;
@@ -908,8 +893,11 @@
 
       resetExpenseForm();
 
+      // Form is ONLY visible if user is logged in AND is either the card owner or admin
       const entryForm = document.getElementById('addExpenseForm');
-      if (currentUser && (currentUser.docId === userDocId || currentUser.username === username || currentUser.role === 'admin')) {
+      const canEdit = currentUser && (currentUser.docId === userDocId || currentUser.username === username || currentUser.role === 'admin');
+
+      if (canEdit) {
         entryForm.classList.remove('hidden');
       } else {
         entryForm.classList.add('hidden');
@@ -962,6 +950,7 @@
         const dateStr = expDate ? expDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-';
         const timeStr = expDate ? expDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
         
+        // Strict check: EDIT/DELETE buttons only if logged in and authorized
         const canModify = currentUser && (currentUser.docId === activeMemberDocId || currentUser.username === activeMemberDocId || currentUser.role === 'admin');
         const qtyText = exp.quantity ? `${exp.quantity} ${exp.unit}` : '-';
 
@@ -984,7 +973,7 @@
                     <i class="fa-solid fa-trash text-xs sm:text-sm"></i>
                   </button>
                 </div>
-              ` : `<span class="text-[10px] sm:text-xs text-slate-400 font-medium">View</span>`}
+              ` : `<span class="text-[10px] sm:text-xs text-slate-400 font-medium">View Only</span>`}
             </td>
           </tr>
         `;
@@ -1013,6 +1002,11 @@
     // EXPENSE FORM ACTIONS
     window.handleExpenseSubmit = async function(e) {
       e.preventDefault();
+      if (!currentUser) {
+        showAlert('Please login to add or edit expenses!', 'error');
+        return;
+      }
+
       const editingId = document.getElementById('editingExpenseId').value;
       const remark = document.getElementById('remarkInput').value.trim();
       const qty = document.getElementById('qtyInput').value;
@@ -1051,6 +1045,8 @@
     }
 
     window.startEditExpense = function(id, remark, qty, unit, amount) {
+      if (!currentUser) return showAlert('Please login first!', 'error');
+
       document.getElementById('editingExpenseId').value = id;
       document.getElementById('remarkInput').value = remark;
       document.getElementById('qtyInput').value = qty;
@@ -1074,6 +1070,8 @@
     }
 
     window.deleteExpense = async function(expenseId) {
+      if (!currentUser) return showAlert('Please login to delete records!', 'error');
+
       if (confirm('Are you sure you want to delete this expense record?')) {
         try {
           await db.collection('expenses').doc(expenseId).delete();
@@ -1238,6 +1236,10 @@
     }
 
     window.handleDeleteMonthData = async function() {
+      if (!currentUser || currentUser.role !== 'admin') {
+        return showAlert('Admin access required!', 'error');
+      }
+
       const targetMonth = parseInt(document.getElementById('deleteMonthSelect').value);
       const targetYear = parseInt(document.getElementById('deleteYearSelect').value);
 
