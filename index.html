@@ -210,7 +210,7 @@
             </div>
           </div>
 
-          <!-- Expense Entry Form (Hidden if not logged in / not authorized) -->
+          <!-- Expense Entry Form -->
           <form id="addExpenseForm" onsubmit="handleExpenseSubmit(event)" class="bg-white/80 p-5 rounded-2xl border border-blue-100 space-y-4 shadow-sm hidden">
             <input type="hidden" id="editingExpenseId" value="">
             <h3 id="formTitle" class="text-sm font-bold text-slate-700 flex items-center gap-2">
@@ -255,16 +255,16 @@
             </div>
           </form>
 
-          <!-- Expenses List Table -->
+          <!-- Expenses List Table (Mobile Responsive Full Feed View Fix) -->
           <div class="overflow-x-auto rounded-2xl border border-blue-100 bg-white/70">
-            <table class="w-full text-left text-xs sm:text-sm text-slate-700">
-              <thead class="bg-blue-50/80 text-blue-900 uppercase text-[10px] sm:text-[11px] tracking-wider font-bold border-b border-blue-100">
+            <table class="w-full text-left text-[11px] sm:text-sm text-slate-700 table-fixed">
+              <thead class="bg-blue-50/80 text-blue-900 uppercase text-[9px] sm:text-[11px] tracking-wider font-bold border-b border-blue-100">
                 <tr>
-                  <th class="py-3 px-2 sm:p-4">Date & Time</th>
-                  <th class="py-3 px-2 sm:p-4">Description</th>
-                  <th class="py-3 px-2 sm:p-4">Qty</th>
-                  <th class="py-3 px-2 sm:p-4">Amount</th>
-                  <th class="py-3 px-2 sm:p-4 text-right">Actions</th>
+                  <th class="py-2.5 px-1.5 sm:p-4 w-[24%] sm:w-auto">Date & Time</th>
+                  <th class="py-2.5 px-1.5 sm:p-4 w-[36%] sm:w-auto">Description</th>
+                  <th class="py-2.5 px-1.5 sm:p-4 w-[16%] sm:w-auto">Qty</th>
+                  <th class="py-2.5 px-1.5 sm:p-4 w-[24%] sm:w-auto">Amount</th>
+                  <th class="py-2.5 px-1.5 sm:p-4 text-right w-[15%] sm:w-auto">Actions</th>
                 </tr>
               </thead>
               <tbody id="expenseTableBody" class="divide-y divide-blue-50">
@@ -286,7 +286,8 @@
           </div>
           
           <div class="flex flex-wrap gap-2">
-            <button onclick="promptCalcAuth()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm">
+            <!-- 直接 পাসওয়ার্ড ছাড়াই ওপেন হবে অ্যাডমিন লগইন অবস্থায় -->
+            <button onclick="openCalculatorFullPage()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm">
               <i class="fa-solid fa-calculator"></i> Open Mess Calculator
             </button>
             <button onclick="openReportModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm">
@@ -420,24 +421,6 @@
   </div>
 
   <!-- MODALS -->
-  <div id="calcAuthModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
-    <div class="soft-card rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4 bg-white">
-      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-        <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-lock text-indigo-600 mr-2"></i>Admin Authentication</h3>
-        <button onclick="toggleCalcAuthModal(false)" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <form onsubmit="verifyCalcPass(event)" class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Enter Admin Password</label>
-          <input type="password" id="calcAdminPass" required placeholder="******" class="w-full soft-input rounded-xl p-3 text-sm">
-        </div>
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition text-sm shadow-md">
-          Open Full Page Calculator
-        </button>
-      </form>
-    </div>
-  </div>
-
   <div id="reportModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
     <div class="soft-card rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 bg-white">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -629,7 +612,6 @@
     let currentUser = JSON.parse(localStorage.getItem('boysHuntsUser')) || null;
     let activeMemberDocId = localStorage.getItem('boysHuntsActiveMember') || null;
     
-    // Default Created Months
     let createdMonths = JSON.parse(localStorage.getItem('boysHuntsCreatedMonths')) || [
       { month: new Date().getMonth(), year: new Date().getFullYear() }
     ];
@@ -797,7 +779,7 @@
       loadDashboardData();
     }
 
-    // DASHBOARD LOGIC (All member cards are visible to everyone)
+    // DASHBOARD LOGIC
     function loadDashboardData() {
       db.collection('app_users').where('role', '==', 'member').onSnapshot(snapshot => {
         const grid = document.getElementById('usersGrid');
@@ -812,7 +794,6 @@
           const userData = doc.data();
           const userId = doc.id;
 
-          // Everyone can see all members' market cards
           createdMonths.forEach(mObj => {
             const monthLabel = `${monthsArr[mObj.month]} ${mObj.year}`;
             const cardId = `card-${userId}-${mObj.month}-${mObj.year}`;
@@ -834,7 +815,6 @@
             `;
             grid.appendChild(cardDiv);
 
-            // Fetch total expense for this user and month
             db.collection('expenses').where('userDocId', '==', userId).onSnapshot(expSnap => {
               let total = 0;
               expSnap.forEach(expDoc => {
@@ -875,7 +855,7 @@
       });
     }
 
-    // MEMBER DETAILS (Openable by anyone to VIEW data)
+    // MEMBER DETAILS
     window.openMemberDetails = function(userDocId, name, username, monthIdx, yearNum) {
       activeMemberDocId = userDocId;
       selectedDetailMonth = monthIdx;
@@ -893,7 +873,6 @@
 
       resetExpenseForm();
 
-      // Form is ONLY visible if user is logged in AND is either the card owner or admin
       const entryForm = document.getElementById('addExpenseForm');
       const canEdit = currentUser && (currentUser.docId === userDocId || currentUser.username === username || currentUser.role === 'admin');
 
@@ -916,6 +895,7 @@
         });
     }
 
+    // RENDER EXPENSE TABLE (Full Feed Mobile View Optimized)
     function renderExpenseTable(snapshot, mIdx, yNum) {
       const tbody = document.getElementById('expenseTableBody');
       tbody.innerHTML = '';
@@ -933,7 +913,7 @@
       });
 
       if (docs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 text-xs font-semibold">No market records for ${monthsArr[mIdx]} ${yNum}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400 text-xs font-semibold">No market records for ${monthsArr[mIdx]} ${yNum}</td></tr>`;
         document.getElementById('memberTotalExpense').innerText = `৳ 0`;
         return;
       }
@@ -950,30 +930,29 @@
         const dateStr = expDate ? expDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-';
         const timeStr = expDate ? expDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
         
-        // Strict check: EDIT/DELETE buttons only if logged in and authorized
         const canModify = currentUser && (currentUser.docId === activeMemberDocId || currentUser.username === activeMemberDocId || currentUser.role === 'admin');
-        const qtyText = exp.quantity ? `${exp.quantity} ${exp.unit}` : '-';
+        const qtyText = exp.quantity ? `${exp.quantity}${exp.unit}` : '-';
 
         const row = `
-          <tr class="hover:bg-blue-50/50 transition">
-            <td class="py-2.5 px-2 sm:p-4 text-[10px] sm:text-xs text-slate-500 font-mono font-medium leading-tight">
+          <tr class="hover:bg-blue-50/50 transition border-b border-blue-50/80">
+            <td class="py-2 px-1 sm:p-3 text-[9px] sm:text-xs text-slate-500 font-mono font-medium leading-tight break-all">
               <div>${dateStr}</div>
-              <div class="text-[9px] sm:text-[10px] text-slate-400">${timeStr}</div>
+              <div class="text-[8px] sm:text-[10px] text-slate-400">${timeStr}</div>
             </td>
-            <td class="py-2.5 px-2 sm:p-4 font-bold text-xs sm:text-sm text-slate-800 break-words">${exp.remark}</td>
-            <td class="py-2.5 px-2 sm:p-4"><span class="text-[10px] sm:text-xs bg-blue-100 text-blue-800 font-semibold px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg inline-block whitespace-nowrap">${qtyText}</span></td>
-            <td class="py-2.5 px-2 sm:p-4 text-blue-600 font-extrabold text-xs sm:text-sm whitespace-nowrap">৳ ${exp.amount}</td>
-            <td class="py-2.5 px-2 sm:p-4 text-right">
+            <td class="py-2 px-1 sm:p-3 font-bold text-[11px] sm:text-sm text-slate-800 break-words">${exp.remark}</td>
+            <td class="py-2 px-1 sm:p-3"><span class="text-[9px] sm:text-xs bg-blue-100 text-blue-800 font-semibold px-1 py-0.5 sm:px-2.5 sm:py-1 rounded-md inline-block whitespace-nowrap">${qtyText}</span></td>
+            <td class="py-2 px-1 sm:p-3 text-blue-600 font-extrabold text-[11px] sm:text-sm whitespace-nowrap">৳ ${exp.amount}</td>
+            <td class="py-2 px-1 sm:p-3 text-right">
               ${canModify ? `
                 <div class="flex justify-end gap-0.5 sm:gap-1">
-                  <button onclick="startEditExpense('${exp.id}', '${exp.remark}', '${exp.quantity || ''}', '${exp.unit || 'kg'}', '${exp.amount}')" class="text-blue-600 hover:bg-blue-100 p-1 sm:p-2 rounded-lg transition" title="Edit">
-                    <i class="fa-solid fa-pen-to-square text-xs sm:text-sm"></i>
+                  <button onclick="startEditExpense('${exp.id}', '${exp.remark}', '${exp.quantity || ''}', '${exp.unit || 'kg'}', '${exp.amount}')" class="text-blue-600 hover:bg-blue-100 p-0.5 sm:p-2 rounded-lg transition" title="Edit">
+                    <i class="fa-solid fa-pen-to-square text-[10px] sm:text-sm"></i>
                   </button>
-                  <button onclick="deleteExpense('${exp.id}')" class="text-rose-600 hover:bg-rose-100 p-1 sm:p-2 rounded-lg transition" title="Delete">
-                    <i class="fa-solid fa-trash text-xs sm:text-sm"></i>
+                  <button onclick="deleteExpense('${exp.id}')" class="text-rose-600 hover:bg-rose-100 p-0.5 sm:p-2 rounded-lg transition" title="Delete">
+                    <i class="fa-solid fa-trash text-[10px] sm:text-sm"></i>
                   </button>
                 </div>
-              ` : `<span class="text-[10px] sm:text-xs text-slate-400 font-medium">View Only</span>`}
+              ` : `<span class="text-[9px] sm:text-xs text-slate-400 font-medium">View</span>`}
             </td>
           </tr>
         `;
@@ -1397,7 +1376,7 @@
       }
     }
 
-    // --- CALCULATOR ENGINE LOGIC ---
+    // CALCULATOR ENGINE LOGIC
     function initCalculatorEngine() {
       const selectMonthElCalc = document.getElementById("currentMonth");
       
@@ -1809,35 +1788,8 @@
       reportWindow.document.close();
     }
 
-    // AUTHENTICATION & SWITCH FUNCTIONS
-    window.promptCalcAuth = function() {
-      document.getElementById('calcAdminPass').value = '';
-      toggleCalcAuthModal(true);
-    }
-
-    window.toggleCalcAuthModal = function(show) {
-      document.getElementById('calcAuthModal').classList.toggle('hidden', !show);
-    }
-
-    window.verifyCalcPass = async function(e) {
-      e.preventDefault();
-      const inputPass = document.getElementById('calcAdminPass').value.trim();
-
-      try {
-        const adminDoc = await db.collection('app_users').doc('admin').get();
-        if (adminDoc.exists && adminDoc.data().password === inputPass) {
-          toggleCalcAuthModal(false);
-          openCalculatorFullPage();
-          showAlert('Mess Calculator Full Page Opened!', 'success');
-        } else {
-          showAlert('Incorrect Admin Password!', 'error');
-        }
-      } catch (err) {
-        showAlert('Verification failed: ' + err.message, 'error');
-      }
-    }
-
-    function openCalculatorFullPage() {
+    // DIRECT OPEN CALCULATOR FOR LOGGED IN ADMIN
+    window.openCalculatorFullPage = function() {
       document.getElementById('mainAppWrapper').classList.add('hidden');
       document.getElementById('calculatorFullPageView').classList.remove('hidden');
       window.scrollTo(0, 0);
