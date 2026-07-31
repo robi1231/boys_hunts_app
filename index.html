@@ -145,7 +145,7 @@
             </div>
             <p id="dashboardSubtitle" class="text-xs sm:text-sm text-slate-500 mt-1">Your personal market expenses dashboard</p>
             
-            <!-- Month Creation & Selection Form -->
+            <!-- Month Creation & Selection Form with GO Button -->
             <div class="flex flex-wrap items-center gap-2 mt-3 bg-white/80 p-2 rounded-2xl border border-blue-100 max-w-fit shadow-sm">
               <span class="text-xs font-bold text-slate-600 pl-1"><i class="fa-solid fa-calendar-days text-blue-600 mr-1"></i> Month:</span>
               <select id="createMonthSelect" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80">
@@ -168,6 +168,11 @@
                 <option value="2027">2027</option>
                 <option value="2028">2028</option>
               </select>
+
+              <button onclick="applyMonthFilter()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition shadow-sm flex items-center gap-1">
+                <i class="fa-solid fa-arrow-right"></i> Go
+              </button>
+
               <button onclick="createNewMonth()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition shadow-sm flex items-center gap-1">
                 <i class="fa-solid fa-plus"></i> Create Month
               </button>
@@ -616,8 +621,8 @@
       { month: new Date().getMonth(), year: new Date().getFullYear() }
     ];
 
-    let selectedDetailMonth = createdMonths[0].month;
-    let selectedDetailYear = createdMonths[0].year;
+    let selectedDetailMonth = createdMonths[0] ? createdMonths[0].month : new Date().getMonth();
+    let selectedDetailYear = createdMonths[0] ? createdMonths[0].year : new Date().getFullYear();
 
     let expenseUnsubscribe = null;
 
@@ -755,7 +760,7 @@
       window.showDashboard();
     }
 
-    // CREATE NEW MONTH
+    // CREATE NEW MONTH - MUST BE LOGGED IN
     window.createNewMonth = function() {
       if (!currentUser) {
         showAlert('Please login first to create a month!', 'error');
@@ -779,8 +784,27 @@
       loadDashboardData();
     }
 
-    // DASHBOARD LOGIC (Renders cards for created months)
+    // GO BUTTON FILTER ACTION
+    window.applyMonthFilter = function() {
+      const selectedMonth = parseInt(document.getElementById('createMonthSelect').value);
+      const selectedYear = parseInt(document.getElementById('createYearSelect').value);
+
+      // Check if month exists, if not add it dynamically so cards can display
+      const exists = createdMonths.some(m => m.month === selectedMonth && m.year === selectedYear);
+      if (!exists) {
+        createdMonths.unshift({ month: selectedMonth, year: selectedYear });
+        localStorage.setItem('boysHuntsCreatedMonths', JSON.stringify(createdMonths));
+      }
+
+      loadDashboardData();
+      showAlert(`Showing data for ${monthsArr[selectedMonth]} ${selectedYear}`, 'info');
+    }
+
+    // DASHBOARD LOGIC
     function loadDashboardData() {
+      const selectedMonth = parseInt(document.getElementById('createMonthSelect').value);
+      const selectedYear = parseInt(document.getElementById('createYearSelect').value);
+
       db.collection('app_users').where('role', '==', 'member').onSnapshot(snapshot => {
         const grid = document.getElementById('usersGrid');
         grid.innerHTML = '';
@@ -798,44 +822,42 @@
           const isAdmin = currentUser && currentUser.role === 'admin';
 
           if (isAdmin || isUserOwner || !currentUser) {
-            createdMonths.forEach(mObj => {
-              const monthLabel = `${monthsArr[mObj.month]} ${mObj.year}`;
-              const cardId = `card-${userId}-${mObj.month}-${mObj.year}`;
+            const monthLabel = `${monthsArr[selectedMonth]} ${selectedYear}`;
+            const cardId = `card-${userId}-${selectedMonth}-${selectedYear}`;
 
-              const cardDiv = document.createElement('div');
-              cardDiv.className = "soft-card hover:border-blue-300 rounded-2xl p-5 transition-all duration-200 cursor-pointer flex justify-between items-center group";
-              cardDiv.onclick = () => window.openMemberDetails(userId, userData.name, userData.username, mObj.month, mObj.year);
+            const cardDiv = document.createElement('div');
+            cardDiv.className = "soft-card hover:border-blue-300 rounded-2xl p-5 transition-all duration-200 cursor-pointer flex justify-between items-center group";
+            cardDiv.onclick = () => window.openMemberDetails(userId, userData.name, userData.username, selectedMonth, selectedYear);
 
-              cardDiv.innerHTML = `
-                <div class="space-y-1">
-                  <h3 class="text-base font-bold text-slate-800 group-hover:text-blue-600 transition">${userData.name}</h3>
-                  <p class="text-xs text-slate-500 font-mono">@${userData.username}</p>
-                  <span class="inline-block mt-2 text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full">${monthLabel}</span>
-                </div>
-                <div class="text-right">
-                  <span id="${cardId}" class="text-xl font-black text-blue-600 block">৳ 0</span>
-                  <span class="text-[11px] text-slate-500 group-hover:text-blue-600 font-semibold transition">Details <i class="fa-solid fa-chevron-right text-[9px] ml-0.5"></i></span>
-                </div>
-              `;
-              grid.appendChild(cardDiv);
+            cardDiv.innerHTML = `
+              <div class="space-y-1">
+                <h3 class="text-base font-bold text-slate-800 group-hover:text-blue-600 transition">${userData.name}</h3>
+                <p class="text-xs text-slate-500 font-mono">@${userData.username}</p>
+                <span class="inline-block mt-2 text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full">${monthLabel}</span>
+              </div>
+              <div class="text-right">
+                <span id="${cardId}" class="text-xl font-black text-blue-600 block">৳ 0</span>
+                <span class="text-[11px] text-slate-500 group-hover:text-blue-600 font-semibold transition">Details <i class="fa-solid fa-chevron-right text-[9px] ml-0.5"></i></span>
+              </div>
+            `;
+            grid.appendChild(cardDiv);
 
-              // Fetch total expense for this user and specific month
-              db.collection('expenses').where('userDocId', '==', userId).onSnapshot(expSnap => {
-                let total = 0;
-                expSnap.forEach(expDoc => {
-                  const expData = expDoc.data();
-                  if(expData.createdAt) {
-                    const d = expData.createdAt.toDate ? expData.createdAt.toDate() : new Date(expData.createdAt);
-                    if(d.getMonth() === mObj.month && d.getFullYear() === mObj.year) {
-                      total += Number(expData.amount || 0);
-                    }
+            // Fetch total expense for this user and specific selected month
+            db.collection('expenses').where('userDocId', '==', userId).onSnapshot(expSnap => {
+              let total = 0;
+              expSnap.forEach(expDoc => {
+                const expData = expDoc.data();
+                if(expData.createdAt) {
+                  const d = expData.createdAt.toDate ? expData.createdAt.toDate() : new Date(expData.createdAt);
+                  if(d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
+                    total += Number(expData.amount || 0);
                   }
-                });
-                
-                const totalEl = document.getElementById(cardId);
-                if(totalEl) totalEl.innerText = `৳ ${total}`;
-                calculateGrandTotal();
+                }
               });
+              
+              const totalEl = document.getElementById(cardId);
+              if(totalEl) totalEl.innerText = `৳ ${total}`;
+              calculateGrandTotal();
             });
           }
         });
@@ -855,9 +877,6 @@
         let grandTotal = 0;
         snap.forEach(doc => {
           const expData = doc.data();
-          if (currentUser && currentUser.role === 'member' && expData.userDocId !== currentUser.docId) {
-            return;
-          }
           grandTotal += Number(expData.amount || 0);
         });
         document.getElementById('grandTotal').innerText = `৳ ${grandTotal}`;
@@ -1093,7 +1112,7 @@
       }
     }
 
-    // ADMIN REPORT MODAL & PDF GENERATION
+    // ADMIN REPORT MODAL & PDF GENERATION (FIXED DATA FETCHING & FILTERING)
     window.openReportModal = async function() {
       const userSelect = document.getElementById('reportUserSelect');
       userSelect.innerHTML = `<option value="all">All Members</option>`;
@@ -1126,7 +1145,13 @@
 
         const usersSnap = await db.collection('app_users').get();
         let userMap = {};
-        usersSnap.forEach(doc => userMap[doc.id] = doc.data().name);
+        usersSnap.forEach(doc => {
+          const uData = doc.data();
+          userMap[doc.id] = uData.name;
+          if (uData.username) {
+            userMap[uData.username] = uData.name;
+          }
+        });
 
         let expQuery = db.collection('expenses');
         if (selectedUserId !== 'all') {
@@ -1141,7 +1166,7 @@
           if (data.createdAt) {
             const date = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
             if (date.getMonth() === selectedMonth && date.getFullYear() === selectedYear) {
-              filteredExpenses.push(data);
+              filteredExpenses.push({ ...data, parsedDate: date });
             }
           }
         });
@@ -1151,77 +1176,202 @@
           return;
         }
 
-        filteredExpenses.sort((a, b) => a.createdAt.toDate() - b.createdAt.toDate());
+        filteredExpenses.sort((a, b) => a.parsedDate - b.parsedDate);
 
-        let totalAmount = 0;
-        let rowsHtml = '';
-
-        filteredExpenses.forEach((item, index) => {
-          totalAmount += Number(item.amount || 0);
-          const dateStr = new Date(item.createdAt.toDate ? item.createdAt.toDate() : item.createdAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
-          const mName = userMap[item.userDocId] || item.userDocId;
-          const qtyText = item.quantity ? `${item.quantity} ${item.unit}` : '-';
-
-          rowsHtml += `
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-              <td style="padding: 8px; font-size: 11px;">${index + 1}</td>
-              <td style="padding: 8px; font-size: 11px;">${dateStr}</td>
-              <td style="padding: 8px; font-size: 11px; font-weight: bold;">${mName}</td>
-              <td style="padding: 8px; font-size: 11px;">${item.remark}</td>
-              <td style="padding: 8px; font-size: 11px;">${qtyText}</td>
-              <td style="padding: 8px; font-size: 11px; font-weight: bold; text-align: right;">৳ ${item.amount}</td>
-            </tr>
-          `;
-        });
-
-        const filterUserText = selectedUserId === 'all' ? 'All Members' : userMap[selectedUserId];
+        const filterUserText = selectedUserId === 'all' ? 'All Members' : (userMap[selectedUserId] || 'Member');
+        let totalAmount = filteredExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
         const pdfTemplate = document.createElement('div');
         pdfTemplate.style.padding = '20px';
         pdfTemplate.style.fontFamily = 'Arial, sans-serif';
         pdfTemplate.style.color = '#1e293b';
 
-        pdfTemplate.innerHTML = `
-          <div style="text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 22px; color: #1e3a8a; font-weight: 800;">Boys Hunts</h1>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;">Monthly Market Expense Report</p>
-          </div>
+        let contentBody = '';
 
-          <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 12px; background: #f8fafc; padding: 10px; border-radius: 8px;">
-            <div>
-              <p style="margin: 2px 0;"><strong>Month & Year:</strong> ${monthName} ${selectedYear}</p>
-              <p style="margin: 2px 0;"><strong>Member:</strong> ${filterUserText}</p>
-            </div>
-            <div style="text-align: right;">
-              <p style="margin: 2px 0;"><strong>Total Market Expense:</strong> <span style="color: #2563eb; font-size: 14px; font-weight: bold;">৳ ${totalAmount}</span></p>
-              <p style="margin: 2px 0; color: #64748b;">Generated Date: ${new Date().toLocaleDateString('en-GB')}</p>
-            </div>
-          </div>
+        if (selectedUserId === 'all') {
+          // PAGE 1: Grand Total Summary
+          let memberTotals = {};
+          filteredExpenses.forEach(exp => {
+            let uName = userMap[exp.userDocId] || exp.userDocId;
+            memberTotals[uName] = (memberTotals[uName] || 0) + Number(exp.amount || 0);
+          });
 
-          <table style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead>
-              <tr style="background-color: #eff6ff; color: #1e40af; border-bottom: 2px solid #bfdbfe;">
-                <th style="padding: 8px; font-size: 11px;">#</th>
-                <th style="padding: 8px; font-size: 11px;">Date & Time</th>
-                <th style="padding: 8px; font-size: 11px;">Name</th>
-                <th style="padding: 8px; font-size: 11px;">Description</th>
-                <th style="padding: 8px; font-size: 11px;">Quantity</th>
-                <th style="padding: 8px; font-size: 11px; text-align: right;">Amount</th>
+          let summaryRowsHtml = '';
+          let countIndex = 1;
+          for (let mName in memberTotals) {
+            summaryRowsHtml += `
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px; font-size: 12px; text-align: center;">${countIndex++}</td>
+                <td style="padding: 10px; font-size: 12px; font-weight: bold;">${mName}</td>
+                <td style="padding: 10px; font-size: 12px; font-weight: bold; text-align: right; color: #2563eb;">৳ ${memberTotals[mName]}</td>
               </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
+            `;
+          }
 
-          <div style="margin-top: 20px; text-align: right; border-top: 2px solid #e2e8f0; padding-top: 8px;">
-            <p style="font-size: 14px; font-weight: bold; color: #0f172a;">Grand Total: ৳ ${totalAmount}</p>
-          </div>
-        `;
+          contentBody += `
+            <div style="margin-bottom: 30px;">
+              <div style="text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 15px;">
+                <h1 style="margin: 0; font-size: 24px; color: #1e3a8a; font-weight: 800;">Boys Hunts</h1>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;">Overall Mess Market Expense Summary</p>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 12px; background: #f8fafc; padding: 12px; border-radius: 8px;">
+                <div>
+                  <p style="margin: 2px 0;"><strong>Month & Year:</strong> ${monthName} ${selectedYear}</p>
+                  <p style="margin: 2px 0;"><strong>Report Type:</strong> All Members Summary</p>
+                </div>
+                <div style="text-align: right;">
+                  <p style="margin: 2px 0;"><strong>Total Mess Expense:</strong> <span style="color: #2563eb; font-size: 15px; font-weight: bold;">৳ ${totalAmount}</span></p>
+                  <p style="margin: 2px 0; color: #64748b;">Generated Date: ${new Date().toLocaleDateString('en-GB')}</p>
+                </div>
+              </div>
+
+              <h3 style="font-size: 14px; color: #334155; margin-bottom: 10px; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px;">Member Expenses Summary List</h3>
+              <table style="width: 100%; border-collapse: collapse; text-align: left; margin-bottom: 20px;">
+                <thead>
+                  <tr style="background-color: #eff6ff; color: #1e40af; border-bottom: 2px solid #bfdbfe;">
+                    <th style="padding: 10px; font-size: 12px; text-align: center;">#</th>
+                    <th style="padding: 10px; font-size: 12px;">Member Name</th>
+                    <th style="padding: 10px; font-size: 12px; text-align: right;">Total Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${summaryRowsHtml}
+                </tbody>
+              </table>
+              <div style="text-align: right; border-top: 2px solid #e2e8f0; padding-top: 10px;">
+                <p style="font-size: 15px; font-weight: bold; color: #0f172a;">Grand Total: ৳ ${totalAmount}</p>
+              </div>
+            </div>
+          `;
+
+          // SUBSEQUENT PAGES: Member details
+          let expensesByMember = {};
+          filteredExpenses.forEach(exp => {
+            let uName = userMap[exp.userDocId] || exp.userDocId;
+            if (!expensesByMember[uName]) expensesByMember[uName] = [];
+            expensesByMember[uName].push(exp);
+          });
+
+          for (let mName in expensesByMember) {
+            let memberExpList = expensesByMember[mName];
+            let memberSum = memberExpList.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+            let rowsHtml = '';
+
+            memberExpList.forEach((item, index) => {
+              const dateStr = item.parsedDate.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
+              const qtyText = item.quantity ? `${item.quantity} ${item.unit}` : '-';
+              rowsHtml += `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 8px; font-size: 11px; text-align: center;">${index + 1}</td>
+                  <td style="padding: 8px; font-size: 11px;">${dateStr}</td>
+                  <td style="padding: 8px; font-size: 11px;">${item.remark}</td>
+                  <td style="padding: 8px; font-size: 11px;">${qtyText}</td>
+                  <td style="padding: 8px; font-size: 11px; font-weight: bold; text-align: right;">৳ ${item.amount}</td>
+                </tr>
+              `;
+            });
+
+            contentBody += `
+              <div style="page-break-before: always; padding-top: 10px;">
+                <div style="text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 8px; margin-bottom: 12px;">
+                  <h2 style="margin: 0; font-size: 20px; color: #1e3a8a; font-weight: 800;">Boys Hunts</h2>
+                  <p style="margin: 2px 0 0 0; font-size: 12px; color: #475569;">Individual Member Market Expense Statement</p>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 11px; background: #f8fafc; padding: 10px; border-radius: 8px;">
+                  <div>
+                    <p style="margin: 2px 0;"><strong>Member Name:</strong> ${mName}</p>
+                    <p style="margin: 2px 0;"><strong>Month & Year:</strong> ${monthName} ${selectedYear}</p>
+                  </div>
+                  <div style="text-align: right;">
+                    <p style="margin: 2px 0;"><strong>Member Total Expense:</strong> <span style="color: #2563eb; font-size: 13px; font-weight: bold;">৳ ${memberSum}</span></p>
+                  </div>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                  <thead>
+                    <tr style="background-color: #eff6ff; color: #1e40af; border-bottom: 2px solid #bfdbfe;">
+                      <th style="padding: 8px; font-size: 11px; text-align: center;">#</th>
+                      <th style="padding: 8px; font-size: 11px;">Date & Time</th>
+                      <th style="padding: 8px; font-size: 11px;">Description</th>
+                      <th style="padding: 8px; font-size: 11px;">Quantity</th>
+                      <th style="padding: 8px; font-size: 11px; text-align: right;">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rowsHtml}
+                  </tbody>
+                </table>
+
+                <div style="margin-top: 15px; text-align: right; border-top: 2px solid #e2e8f0; padding-top: 6px;">
+                  <p style="font-size: 13px; font-weight: bold; color: #0f172a;">Personal Total: ৳ ${memberSum}</p>
+                </div>
+              </div>
+            `;
+          }
+
+        } else {
+          // SINGLE MEMBER REPORT
+          let rowsHtml = '';
+          filteredExpenses.forEach((item, index) => {
+            const dateStr = item.parsedDate.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
+            const qtyText = item.quantity ? `${item.quantity} ${item.unit}` : '-';
+
+            rowsHtml += `
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 8px; font-size: 11px; text-align: center;">${index + 1}</td>
+                <td style="padding: 8px; font-size: 11px;">${dateStr}</td>
+                <td style="padding: 8px; font-size: 11px;">${item.remark}</td>
+                <td style="padding: 8px; font-size: 11px;">${qtyText}</td>
+                <td style="padding: 8px; font-size: 11px; font-weight: bold; text-align: right;">৳ ${item.amount}</td>
+              </tr>
+            `;
+          });
+
+          contentBody = `
+            <div style="text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 15px;">
+              <h1 style="margin: 0; font-size: 22px; color: #1e3a8a; font-weight: 800;">Boys Hunts</h1>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;">Personal Market Expense Report</p>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 12px; background: #f8fafc; padding: 10px; border-radius: 8px;">
+              <div>
+                <p style="margin: 2px 0;"><strong>Month & Year:</strong> ${monthName} ${selectedYear}</p>
+                <p style="margin: 2px 0;"><strong>Member:</strong> ${filterUserText}</p>
+              </div>
+              <div style="text-align: right;">
+                <p style="margin: 2px 0;"><strong>Total Personal Expense:</strong> <span style="color: #2563eb; font-size: 14px; font-weight: bold;">৳ ${totalAmount}</span></p>
+                <p style="margin: 2px 0; color: #64748b;">Generated Date: ${new Date().toLocaleDateString('en-GB')}</p>
+              </div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="background-color: #eff6ff; color: #1e40af; border-bottom: 2px solid #bfdbfe;">
+                  <th style="padding: 8px; font-size: 11px; text-align: center;">#</th>
+                  <th style="padding: 8px; font-size: 11px;">Date & Time</th>
+                  <th style="padding: 8px; font-size: 11px;">Description</th>
+                  <th style="padding: 8px; font-size: 11px;">Quantity</th>
+                  <th style="padding: 8px; font-size: 11px; text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+
+            <div style="margin-top: 20px; text-align: right; border-top: 2px solid #e2e8f0; padding-top: 8px;">
+              <p style="font-size: 14px; font-weight: bold; color: #0f172a;">Grand Total: ৳ ${totalAmount}</p>
+            </div>
+          `;
+        }
+
+        pdfTemplate.innerHTML = contentBody;
 
         const opt = {
           margin:       10,
-          filename:     `Bazar_Report_${monthName}_${selectedYear}.pdf`,
+          filename:     `Bazar_Report_${filterUserText.replace(/\s+/g, '_')}_${monthName}_${selectedYear}.pdf`,
           image:        { type: 'jpeg', quality: 0.98 },
           html2canvas:  { scale: 2 },
           jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -1737,9 +1887,24 @@
       const selectMonthElCalc = document.getElementById("currentMonth");
       const monthSelectText = selectMonthElCalc.options[selectMonthElCalc.selectedIndex].text;
 
-      const reportWindow = window.open("", "_blank");
-      
-      let html = ` 
+      let reportRowsHtml = '';
+      for (let name in userDataCalc) {
+        const user = userDataCalc[name];
+        reportRowsHtml += `
+            <tr>
+              <td>${user.name}</td>
+              <td>${user.millCount}</td>
+              <td>${perMillCost} টাকা</td>
+              <td>${user.mill}</td>
+              <td>${user.util}</td>
+              <td>${user.bazar}</td>
+              <td>${user.total}</td>
+              <td><strong>${user.status}</strong></td>
+            </tr>`;
+      }
+
+      const reportHtmlContent = `
+      <!DOCTYPE html>
       <html>
       <head>
         <title>Boys Hunts - Report (${monthSelectText})</title>
@@ -1773,24 +1938,8 @@
               <th>Status</th>
             </tr>
           </thead>
-          <tbody>`;
-
-      for (let name in userDataCalc) {
-        const user = userDataCalc[name];
-        html += `
-            <tr>
-              <td>${user.name}</td>
-              <td>${user.millCount}</td>
-              <td>${perMillCost} টাকা</td>
-              <td>${user.mill}</td>
-              <td>${user.util}</td>
-              <td>${user.bazar}</td>
-              <td>${user.total}</td>
-              <td><strong>${user.status}</strong></td>
-            </tr>`;
-      }
-
-      html += `
+          <tbody>
+            ${reportRowsHtml}
           </tbody>
         </table>
         
@@ -1812,11 +1961,15 @@
         <center style="margin-top: 30px;" class="no-print">
           <button onclick="window.print()" style="padding: 10px 20px; font-weight: bold; background-color: #008CBA; color: white; border: none; border-radius: 5px; cursor: pointer;">PDF হিসেবে সেভ / প্রিন্ট করুন</button>
         </center>
-        <script> window.onload = function() { setTimeout(function() { window.print(); }, 500); } <\/script>
       </body>
       </html>`;
 
-      reportWindow.document.write(html);
+      const reportWindow = window.open("", "_blank");
+      if (!reportWindow) {
+        return alert("Pop-up blocked! Please allow pop-ups for this site to view the report.");
+      }
+      reportWindow.document.open();
+      reportWindow.document.write(reportHtmlContent);
       reportWindow.document.close();
     }
 
