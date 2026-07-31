@@ -872,12 +872,21 @@
       });
     }
 
+    // CALCULATE GRAND TOTAL FOR SELECTED MONTH
     function calculateGrandTotal() {
+      const selectedMonth = parseInt(document.getElementById('createMonthSelect').value);
+      const selectedYear = parseInt(document.getElementById('createYearSelect').value);
+
       db.collection('expenses').onSnapshot(snap => {
         let grandTotal = 0;
         snap.forEach(doc => {
           const expData = doc.data();
-          grandTotal += Number(expData.amount || 0);
+          if (expData.createdAt) {
+            const d = expData.createdAt.toDate ? expData.createdAt.toDate() : new Date(expData.createdAt);
+            if (d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
+              grandTotal += Number(expData.amount || 0);
+            }
+          }
         });
         document.getElementById('grandTotal').innerText = `৳ ${grandTotal}`;
       });
@@ -1112,7 +1121,7 @@
       }
     }
 
-    // ADMIN REPORT MODAL & PDF GENERATION (FIXED DATA FETCHING & FILTERING)
+    // ADMIN REPORT MODAL & PDF GENERATION
     window.openReportModal = async function() {
       const userSelect = document.getElementById('reportUserSelect');
       userSelect.innerHTML = `<option value="all">All Members</option>`;
