@@ -1313,10 +1313,11 @@
         return;
       }
 
+      // FIX: ASCENDING ORDER SORTING (পুরোনো তারিখ থেকে নতুন তারিখ ক্রমানুসারে সাজানো)
       docs.sort((a, b) => {
         let timeA = a.parsedDate ? a.parsedDate.getTime() : Date.now();
         let timeB = b.parsedDate ? b.parsedDate.getTime() : Date.now();
-        return timeB - timeA;
+        return timeA - timeB;
       });
 
       const activeUsername = document.getElementById('activeMemberUsername').innerText.replace('User Name: ', '').trim();
