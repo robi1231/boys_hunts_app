@@ -973,8 +973,8 @@
     let millRate = 0;
     let userDataCalc = {};
     let bazarDataCalc = {};
-    let userListCalc = [];
     let defaultUsersCalc = ["Robi", "Nadim", "Noman", "Bosir", "Tanjil", "Sadik"];
+    let userListCalc = [...defaultUsersCalc];
     let currentMonthCalc = "";
 
     // PAYMENT ACCOUNTS VARIABLES
@@ -1914,7 +1914,7 @@
       }
     }
 
-    // CALCULATOR ENGINE LOGIC (FIXED)
+    // CALCULATOR ENGINE LOGIC (GUARANTEED POPULATION & SYNC)
     function initCalculatorEngine() {
       const selectMonthElCalc = document.getElementById("currentMonth");
       
@@ -1938,6 +1938,9 @@
       currentMonthCalc = `${monthsEnglish[currentMonthIndex]}_${currentYear}`;
       selectMonthElCalc.value = currentMonthCalc;
 
+      // Render default users immediately so select is never empty
+      renderUsersEngine();
+
       selectMonthElCalc.addEventListener('change', (e) => {
         off(ref(rtdb, `months/${currentMonthCalc}/userList`));
         off(ref(rtdb, `months/${currentMonthCalc}/reportData`));
@@ -1956,15 +1959,29 @@
       document.getElementById("reportBtn").addEventListener('click', generateReportEngine);
       document.getElementById("manageUserSelect").addEventListener('change', (e) => handleActionEngine(e.target));
 
+      // Auto sync Firestore users to calculator user list
+      db.collection('app_users').where('role', '==', 'member').onSnapshot(snap => {
+        let fsNames = [];
+        snap.forEach(doc => {
+          if (doc.data().name) fsNames.push(doc.data().name.trim());
+        });
+        if (fsNames.length > 0) {
+          userListCalc = [...new Set([...userListCalc, ...fsNames])];
+          renderUsersEngine();
+        }
+      });
+
       syncCalculatorData();
     }
 
     function syncCalculatorData() {
       onValue(ref(rtdb, `months/${currentMonthCalc}/userList`), (snapshot) => {
         if (snapshot.exists()) {
-          userListCalc = snapshot.val();
+          const rtdbUsers = snapshot.val();
+          if (Array.isArray(rtdbUsers) && rtdbUsers.length > 0) {
+            userListCalc = [...new Set([...userListCalc, ...rtdbUsers])];
+          }
         } else {
-          userListCalc = [...defaultUsersCalc];
           set(ref(rtdb, `months/${currentMonthCalc}/userList`), userListCalc);
         }
         renderUsersEngine();
@@ -1982,44 +1999,49 @@
 
     function renderUsersEngine() {
       const bazarSelect = document.getElementById("bazarPerson");
+      if (!bazarSelect) return;
+      
       const currentSelectedVal = bazarSelect.value;
       bazarSelect.innerHTML = '<option value="">নাম নির্বাচন করুন</option>';
       userListCalc.forEach(name => {
         bazarSelect.innerHTML += `<option value="${name}">${name}</option>`;
       });
-      if (userListCalc.includes(currentSelectedVal)) {
+      if (currentSelectedVal && userListCalc.includes(currentSelectedVal)) {
         bazarSelect.value = currentSelectedVal;
       }
 
       const manageSelect = document.getElementById("manageUserSelect");
-      manageSelect.innerHTML = '<option value="">মেম্বার সিলেক্ট করুন (Action)</option>';
-      userListCalc.forEach(name => {
-        manageSelect.innerHTML += `
-          <optgroup label="${name}">
-            <option value="rename:${name}">📝 Rename</option>
-            <option value="delete:${name}">❌ Delete</option>
-          </optgroup>
-        `;
-      });
+      if (manageSelect) {
+        manageSelect.innerHTML = '<option value="">মেম্বার সিলেক্ট করুন (Action)</option>';
+        userListCalc.forEach(name => {
+          manageSelect.innerHTML += `
+            <optgroup label="${name}">
+              <option value="rename:${name}">📝 Rename</option>
+              <option value="delete:${name}">❌ Delete</option>
+            </optgroup>
+          `;
+        });
+      }
 
       const tbody = document.querySelector("#userTable tbody");
-      tbody.innerHTML = "";
-      
-      userListCalc.forEach(name => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${name}</strong></td>
-          <td><input type="number" id="addMill_${name}"></td>
-          <td><input type="number" id="mill_${name}" readonly></td>
-          <td><input type="number" id="util_${name}"></td>
-          <td><input type="number" id="bazar_${name}"></td>
-          <td><button data-name="${name}" class="user-submit-btn" style="width: auto; padding: 5px 10px;">Submit</button></td>
-        `;
-        tbody.appendChild(tr);
+      if (tbody) {
+        tbody.innerHTML = "";
+        userListCalc.forEach(name => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${name}</strong></td>
+            <td><input type="number" id="addMill_${name}"></td>
+            <td><input type="number" id="mill_${name}" readonly></td>
+            <td><input type="number" id="util_${name}"></td>
+            <td><input type="number" id="bazar_${name}"></td>
+            <td><button data-name="${name}" class="user-submit-btn" style="width: auto; padding: 5px 10px;">Submit</button></td>
+          `;
+          tbody.appendChild(tr);
 
-        tr.querySelector(`#addMill_${name}`).addEventListener('input', () => updateMillCostEngine(name));
-        tr.querySelector('.user-submit-btn').addEventListener('click', () => submitUserEngine(name));
-      });
+          tr.querySelector(`#addMill_${name}`).addEventListener('input', () => updateMillCostEngine(name));
+          tr.querySelector('.user-submit-btn').addEventListener('click', () => submitUserEngine(name));
+        });
+      }
 
       updateBazarUIEngine();
     }
@@ -2028,8 +2050,9 @@
       totalBazar = 0;
       const summaryContainer = document.getElementById("bazarBadgesContainer");
       const summaryBox = document.getElementById("importedBazarSummary");
+      if (!summaryContainer || !summaryBox) return;
+      
       summaryContainer.innerHTML = "";
-
       let hasBazar = false;
 
       userListCalc.forEach(name => {
@@ -2084,7 +2107,7 @@
         });
     }
 
-    // FIXED IMPORT MEMBER BAZAR FUNCTION
+    // ACCURATE BAZAR IMPORT FROM FIRESTORE
     async function importBazarEngine() {
       const personName = document.getElementById("bazarPerson").value;
       if (!personName) return alert("দয়া করে মেম্বারের নাম সিলেক্ট করুন!");
@@ -2110,7 +2133,6 @@
         });
 
         matchedDocIds = [...new Set(matchedDocIds)];
-
         if (matchedDocIds.length === 0) {
           matchedDocIds.push(personName.toLowerCase().trim());
         }
@@ -2199,6 +2221,7 @@
       
       userListCalc.push(name);
       set(ref(rtdb, `months/${currentMonthCalc}/userList`), userListCalc);
+      renderUsersEngine();
       nameInput.value = "";
     }
 
@@ -2229,6 +2252,7 @@
         remove(ref(rtdb, `months/${currentMonthCalc}/bazarData/${name}`));
       }
       dropdown.value = "";
+      renderUsersEngine();
     }
 
     function generateReportEngine() {
@@ -2349,6 +2373,7 @@
     window.openCalculatorFullPage = function() {
       document.getElementById('mainAppWrapper').classList.add('hidden');
       document.getElementById('calculatorFullPageView').classList.remove('hidden');
+      renderUsersEngine();
       window.scrollTo(0, 0);
     }
 
