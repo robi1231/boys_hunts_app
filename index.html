@@ -415,8 +415,10 @@
             
             <!-- Month Creation & Selection Form with GO Button -->
             <div class="flex flex-wrap items-center gap-2 mt-3 bg-white/80 p-2 rounded-2xl border border-blue-100 max-w-fit shadow-sm">
-              <span class="text-xs font-bold text-slate-600 pl-1"><i class="fa-solid fa-calendar-days text-blue-600 mr-1"></i> Month:</span>
-              <select id="createMonthSelect" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80">
+              <label for="createMonthSelect" class="text-xs font-bold text-slate-600 pl-1 cursor-pointer select-none">
+                <i class="fa-solid fa-calendar-days text-blue-600 mr-1"></i> Month:
+              </label>
+              <select id="createMonthSelect" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80 cursor-pointer">
                 <option value="0">January</option>
                 <option value="1">February</option>
                 <option value="2">March</option>
@@ -430,7 +432,7 @@
                 <option value="10">November</option>
                 <option value="11">December</option>
               </select>
-              <select id="createYearSelect" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80">
+              <select id="createYearSelect" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80 cursor-pointer">
                 <option value="2025">2025</option>
                 <option value="2026">2026</option>
                 <option value="2027">2027</option>
@@ -810,7 +812,7 @@
       </div>
       
       <p class="text-xs text-rose-700 bg-rose-50 p-3 rounded-xl border border-rose-200">
-        <i class="fa-solid fa-triangle-exclamation mr-1"></i> <strong>Warning:</strong> All market records for the selected month will be permanently deleted.
+        <i class="fa-solid fa-triangle-exclamation mr-1"></i> <strong>Warning:</strong> All market records and calculator reports for the selected month will be permanently deleted from the database.
       </p>
 
       <div class="space-y-3.5">
@@ -1738,10 +1740,9 @@
 
       const targetMonth = parseInt(document.getElementById('deleteMonthSelect').value);
       const targetYear = parseInt(document.getElementById('deleteYearSelect').value);
-
       const monthName = monthsArr[targetMonth];
 
-      if (!confirm(`Are you sure you want to permanently delete all market data for ${monthName} ${targetYear} from the database? This action cannot be undone.`)) {
+      if (!confirm(`Are you sure you want to permanently delete all market data and calculator records for ${monthName} ${targetYear}? This action cannot be undone.`)) {
         return;
       }
 
@@ -1763,20 +1764,22 @@
           }
         });
 
-        if (count === 0) {
-          showAlert(`No data found for ${monthName} ${targetYear}!`, 'error');
-          return;
+        if (count > 0) {
+          await deleteBatch.commit();
         }
 
-        await deleteBatch.commit();
+        // Also delete from calculator monthly collection
+        const calcDocId = `${monthName}_${targetYear}`;
+        await db.collection('calc_monthly_data').doc(calcDocId).delete().catch(() => {});
 
         createdMonths = createdMonths.filter(m => !(m.month === targetMonth && m.year === targetYear));
         localStorage.setItem('boysHuntsCreatedMonths', JSON.stringify(createdMonths));
 
         toggleDeleteMonthModal(false);
-        showAlert(`Successfully deleted ${count} records for ${monthName} ${targetYear}!`, 'success');
+        showAlert(`Successfully deleted all records for ${monthName} ${targetYear}!`, 'success');
         
         loadDashboardData();
+        syncCalculatorData();
 
       } catch (err) {
         showAlert('Error deleting data: ' + err.message, 'error');
@@ -2114,7 +2117,7 @@
       }
     }
 
-    // DIRECT FIRESTORE IMPORT (NO REALTIME DATABASE ERROR)
+    // DIRECT FIRESTORE IMPORT
     async function importBazarEngine() {
       const [monthStr, yearStr] = currentMonthCalc.split("_");
       const targetMonthIndex = monthsArr.indexOf(monthStr);
@@ -2294,9 +2297,21 @@
       renderUsersEngine();
     }
 
-    function generateReportEngine() {
-      if (Object.keys(userDataCalc).length === 0) {
-        return alert("কোনো সংরক্ষিত হিসাব পাওয়া যায়নি!");
+    async function generateReportEngine() {
+      let reportData = userDataCalc;
+
+      // Ensure data is freshly fetched from database
+      try {
+        const snap = await db.collection('calc_monthly_data').doc(currentMonthCalc).get();
+        if (snap.exists && snap.data().reportData) {
+          reportData = snap.data().reportData;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
+      if (!reportData || Object.keys(reportData).length === 0) {
+        return alert("নির্বাচিত মাসের জন্য কোনো সংরক্ষিত হিসাব পাওয়া যায়নি! আগে মেম্বারদের হিসাব Submit করুন।");
       }
 
       let totalMillCost = 0;
@@ -2306,15 +2321,15 @@
       let totalPabe = 0;
       let totalDibe = 0;
 
-      for (let name in userDataCalc) {
-        const user = userDataCalc[name];
-        totalMillCost += +user.mill;
-        totalUtilityCost += +user.util;
-        totalBazarCost += +user.bazar;
-        totalMillCount += +user.millCount;
+      for (let name in reportData) {
+        const user = reportData[name];
+        totalMillCost += +user.mill || 0;
+        totalUtilityCost += +user.util || 0;
+        totalBazarCost += +user.bazar || 0;
+        totalMillCount += +user.millCount || 0;
 
-        if (user.status === "পাবে") totalPabe += +user.total;
-        else if (user.status === "দিবে") totalDibe += +user.total;
+        if (user.status === "পাবে") totalPabe += +user.total || 0;
+        else if (user.status === "দিবে") totalDibe += +user.total || 0;
       }
 
       const perMillCost = totalMillCount > 0 ? (totalMillCost / totalMillCount).toFixed(2) : "0.00";
@@ -2323,8 +2338,8 @@
       const monthSelectText = selectMonthElCalc.options[selectMonthElCalc.selectedIndex].text;
 
       let reportRowsHtml = '';
-      for (let name in userDataCalc) {
-        const user = userDataCalc[name];
+      for (let name in reportData) {
+        const user = reportData[name];
         reportRowsHtml += `
             <tr>
               <td>${user.name}</td>
@@ -2401,11 +2416,14 @@
 
       const reportWindow = window.open("", "_blank");
       if (!reportWindow) {
-        return alert("Pop-up blocked! Please allow pop-ups for this site to view the report.");
+        document.open();
+        document.write(reportHtmlContent);
+        document.close();
+      } else {
+        reportWindow.document.open();
+        reportWindow.document.write(reportHtmlContent);
+        reportWindow.document.close();
       }
-      reportWindow.document.open();
-      reportWindow.document.write(reportHtmlContent);
-      reportWindow.document.close();
     }
 
     // DIRECT OPEN CALCULATOR FOR LOGGED IN ADMIN
