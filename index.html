@@ -904,7 +904,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, getDocs, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // FIREBASE CONFIGURATION (FIRESTORE)
+    // FIREBASE CONFIGURATION (Cloud Firestore)
     const firebaseConfig = {
       apiKey: "AIzaSyCzssLwY4H2_qZbpeCdF-tD2Fadjv7hkjA",
       authDomain: "bazar-5642d.firebaseapp.com",
@@ -918,10 +918,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const appFS = initializeApp(firebaseConfig, "FIRESTORE_APP");
-    const fsDb = getFirestore(appFS);
-
-    // 2nd Payment Accounts App Firebase Config (boyshuntsacc)
+    // 2nd Payment Accounts App Firebase Config
     const firebaseConfigAcc = {
         apiKey: "AIzaSyBUE4F4zf8WpDwwD9Fs-j6bj-e94y4wP0g",
         authDomain: "boyshuntsacc.firebaseapp.com",
@@ -1896,7 +1893,7 @@
       }
     }
 
-    // CALCULATOR ENGINE LOGIC (AUTO-SYNCED WITH FIRESTORE MAIN DASHBOARD)
+    // CALCULATOR ENGINE LOGIC (FIRESTORE SYNCED)
     function initCalculatorEngine() {
       const selectMonthElCalc = document.getElementById("currentMonth");
       
@@ -1934,7 +1931,7 @@
       document.getElementById("reportBtn").addEventListener('click', generateReportEngine);
       document.getElementById("manageUserSelect").addEventListener('change', (e) => handleActionEngine(e.target));
 
-      // Auto sync all members from Firestore Dashboard
+      // Auto load all users from main Dashboard
       db.collection('app_users').where('role', '==', 'member').onSnapshot(snap => {
         let fsNames = [];
         snap.forEach(doc => {
@@ -1965,7 +1962,6 @@
           savedReportData = data.reportData || {};
         }
 
-        // Auto-fetch expenses for all members for this month
         try {
           const usersSnap = await db.collection("app_users").get();
           let userMapping = {};
@@ -1994,7 +1990,6 @@
           userDataCalc = savedReportData;
           renderUsersEngine();
         } catch (e) {
-          console.error("Auto fetch error:", e);
           bazarDataCalc = savedBazarData;
           userDataCalc = savedReportData;
           renderUsersEngine();
@@ -2119,7 +2114,7 @@
       }
     }
 
-    // ACCURATE BAZAR IMPORT FROM MAIN DASHBOARD
+    // DIRECT FIRESTORE IMPORT (NO REALTIME DATABASE ERROR)
     async function importBazarEngine() {
       const [monthStr, yearStr] = currentMonthCalc.split("_");
       const targetMonthIndex = monthsArr.indexOf(monthStr);
@@ -2174,7 +2169,7 @@
           bazarData: updatedBazar
         }, { merge: true });
 
-        alert(`সফলভাবে মূল ড্যাশবোর্ড থেকে বাজার খরচ ইমপোর্ট ও সেভ করা হয়েছে!`);
+        alert(`সফলভাবে ${count} জন মেম্বারের বাজার খরচ ইমপোর্ট ও সেভ করা হয়েছে!`);
       } catch (err) {
         alert("ইমপোর্ট এরর: " + err.message);
       }
