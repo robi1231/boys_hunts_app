@@ -902,10 +902,9 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, remove, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
     import { getFirestore, collection, getDocs, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // FIREBASE CONFIGURATION (BAZAR-5642D)
+    // FIREBASE CONFIGURATION (BAZAR-5642D) - FIRESTORE DATABASE
     const firebaseConfig = {
       apiKey: "AIzaSyCzssLwY4H2_qZbpeCdF-tD2Fadjv7hkjA",
       authDomain: "bazar-5642d.firebaseapp.com",
@@ -918,21 +917,6 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-
-    // 1st Calculator App Firebase Instances
-    const firebaseConfigRTDB = {
-      apiKey: "AIzaSyC1wWWOu84tOHd1s5HhBrkGv5c1P2UqlqA",
-      authDomain: "boyshunts.firebaseapp.com",
-      databaseURL: "https://boyshunts-default-rtdb.firebaseio.com",
-      projectId: "boyshunts",
-      storageBucket: "boyshunts.firebasestorage.app",
-      messagingSenderId: "614876875448",
-      appId: "1:614876875448:web:b6d187fe1b5fd905bc024d",
-      measurementId: "G-H3CFH5LFLJ"
-    };
-
-    const appRTDB = initializeApp(firebaseConfigRTDB, "RTDB_APP");
-    const rtdb = getDatabase(appRTDB);
 
     const appFS = initializeApp(firebaseConfig, "FIRESTORE_APP");
     const fsDb = getFirestore(appFS);
@@ -976,6 +960,7 @@
     let defaultUsersCalc = ["Robi", "Nadim", "Noman", "Bosir", "Tanjil", "Sadik"];
     let userListCalc = [...defaultUsersCalc];
     let currentMonthCalc = "";
+    let calcMonthUnsub = null;
 
     // PAYMENT ACCOUNTS VARIABLES
     let membersDataAcc = [];
@@ -1113,7 +1098,7 @@
       window.showDashboard();
     }
 
-    // CREATE NEW MONTH - MUST BE LOGGED IN
+    // CREATE NEW MONTH
     window.createNewMonth = function() {
       if (!currentUser) {
         showAlert('Please login first to create a month!', 'error');
@@ -1137,7 +1122,6 @@
       loadDashboardData();
     }
 
-    // GO BUTTON FILTER ACTION
     window.applyMonthFilter = function() {
       const selectedMonth = parseInt(document.getElementById('createMonthSelect').value);
       const selectedYear = parseInt(document.getElementById('createYearSelect').value);
@@ -1223,7 +1207,6 @@
       });
     }
 
-    // CALCULATE GRAND TOTAL FOR SELECTED MONTH
     function calculateGrandTotal() {
       const selectedMonth = parseInt(document.getElementById('createMonthSelect').value);
       const selectedYear = parseInt(document.getElementById('createYearSelect').value);
@@ -1914,7 +1897,7 @@
       }
     }
 
-    // CALCULATOR ENGINE LOGIC (GUARANTEED POPULATION & SYNC)
+    // CALCULATOR ENGINE LOGIC (FIRESTORE SYNCED)
     function initCalculatorEngine() {
       const selectMonthElCalc = document.getElementById("currentMonth");
       
@@ -1938,14 +1921,9 @@
       currentMonthCalc = `${monthsEnglish[currentMonthIndex]}_${currentYear}`;
       selectMonthElCalc.value = currentMonthCalc;
 
-      // Render default users immediately so select is never empty
       renderUsersEngine();
 
       selectMonthElCalc.addEventListener('change', (e) => {
-        off(ref(rtdb, `months/${currentMonthCalc}/userList`));
-        off(ref(rtdb, `months/${currentMonthCalc}/reportData`));
-        off(ref(rtdb, `months/${currentMonthCalc}/bazarData`));
-        
         currentMonthCalc = e.target.value;
         syncCalculatorData();
       });
@@ -1975,25 +1953,27 @@
     }
 
     function syncCalculatorData() {
-      onValue(ref(rtdb, `months/${currentMonthCalc}/userList`), (snapshot) => {
-        if (snapshot.exists()) {
-          const rtdbUsers = snapshot.val();
-          if (Array.isArray(rtdbUsers) && rtdbUsers.length > 0) {
-            userListCalc = [...new Set([...userListCalc, ...rtdbUsers])];
+      if (calcMonthUnsub) calcMonthUnsub();
+
+      const docRef = db.collection('calc_monthly_data').doc(currentMonthCalc);
+      calcMonthUnsub = docRef.onSnapshot(snapshot => {
+        if (snapshot.exists) {
+          const data = snapshot.data();
+          if (data.userList && Array.isArray(data.userList)) {
+            userListCalc = [...new Set([...userListCalc, ...data.userList])];
           }
+          bazarDataCalc = data.bazarData || {};
+          userDataCalc = data.reportData || {};
         } else {
-          set(ref(rtdb, `months/${currentMonthCalc}/userList`), userListCalc);
+          docRef.set({
+            userList: userListCalc,
+            bazarData: {},
+            reportData: {}
+          }, { merge: true });
+          bazarDataCalc = {};
+          userDataCalc = {};
         }
         renderUsersEngine();
-      });
-
-      onValue(ref(rtdb, `months/${currentMonthCalc}/bazarData`), (snapshot) => {
-        bazarDataCalc = snapshot.exists() ? snapshot.val() : {};
-        updateBazarUIEngine();
-      });
-
-      onValue(ref(rtdb, `months/${currentMonthCalc}/reportData`), (snapshot) => {
-        userDataCalc = snapshot.exists() ? snapshot.val() : {};
       });
     }
 
@@ -2027,13 +2007,14 @@
       if (tbody) {
         tbody.innerHTML = "";
         userListCalc.forEach(name => {
+          const uData = userDataCalc[name] || {};
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td><strong>${name}</strong></td>
-            <td><input type="number" id="addMill_${name}"></td>
-            <td><input type="number" id="mill_${name}" readonly></td>
-            <td><input type="number" id="util_${name}"></td>
-            <td><input type="number" id="bazar_${name}"></td>
+            <td><input type="number" id="addMill_${name}" value="${uData.millCount || ''}"></td>
+            <td><input type="number" id="mill_${name}" value="${uData.mill || ''}" readonly></td>
+            <td><input type="number" id="util_${name}" value="${uData.util || ''}"></td>
+            <td><input type="number" id="bazar_${name}" value="${bazarDataCalc[name] || ''}"></td>
             <td><button data-name="${name}" class="user-submit-btn" style="width: auto; padding: 5px 10px;">Submit</button></td>
           `;
           tbody.appendChild(tr);
@@ -2056,14 +2037,14 @@
       let hasBazar = false;
 
       userListCalc.forEach(name => {
-        const val = bazarDataCalc[name] || 0;
+        const val = Number(bazarDataCalc[name] || 0);
         const input = document.getElementById(`bazar_${name}`);
         if (input) {
           input.value = val > 0 ? val : "";
         }
 
         if (val > 0) {
-          totalBazar += Number(val);
+          totalBazar += val;
           hasBazar = true;
           summaryContainer.innerHTML += `<span class="calc-badge">${name}: ${val} টাকা</span>`;
         }
@@ -2094,81 +2075,108 @@
       }
     }
 
-    function addBazarManualEngine() {
+    async function addBazarManualEngine() {
       const amount = +document.getElementById("bazarAmount").value;
       const person = document.getElementById("bazarPerson").value;
       if (!amount || !person) return alert("দয়া করে নাম এবং মূল্য দিন!");
 
-      const currentVal = (bazarDataCalc[person] || 0) + amount;
-      set(ref(rtdb, `months/${currentMonthCalc}/bazarData/${person}`), currentVal)
-        .then(() => {
-          alert(`${person} এর জন্য ${amount} টাকা বাজার যুক্ত করা হয়েছে!`);
-          document.getElementById("bazarAmount").value = "";
-        });
+      const currentVal = (Number(bazarDataCalc[person]) || 0) + amount;
+      bazarDataCalc[person] = currentVal;
+
+      try {
+        await db.collection('calc_monthly_data').doc(currentMonthCalc).set({
+          bazarData: { [person]: currentVal }
+        }, { merge: true });
+        alert(`${person} এর জন্য ${amount} টাকা বাজার যুক্ত করা হয়েছে!`);
+        document.getElementById("bazarAmount").value = "";
+      } catch (err) {
+        alert("ত্রুটি: " + err.message);
+      }
     }
 
-    // ACCURATE BAZAR IMPORT FROM FIRESTORE
+    // ACCURATE BAZAR IMPORT FROM FIRESTORE DATABASE (DIRECT AUTO MATCH)
     async function importBazarEngine() {
-      const personName = document.getElementById("bazarPerson").value;
-      if (!personName) return alert("দয়া করে মেম্বারের নাম সিলেক্ট করুন!");
-
       const [monthStr, yearStr] = currentMonthCalc.split("_");
       const targetMonthIndex = monthsArr.indexOf(monthStr);
       const targetYear = parseInt(yearStr);
+      const selectedPerson = document.getElementById("bazarPerson").value;
 
       try {
         const usersSnap = await db.collection("app_users").get();
-        let matchedDocIds = [];
+        let userMapping = {};
 
         usersSnap.forEach(d => {
-          const uData = d.data();
-          const nameMatch = uData.name && uData.name.toLowerCase().trim() === personName.toLowerCase().trim();
-          const userMatch = uData.username && uData.username.toLowerCase().trim() === personName.toLowerCase().trim();
-          const docIdMatch = d.id && d.id.toLowerCase().trim() === personName.toLowerCase().trim();
+          const u = d.data();
+          const docId = d.id;
+          const uName = (u.name || "").trim();
+          const uUser = (u.username || "").trim();
 
-          if (nameMatch || userMatch || docIdMatch) {
-            matchedDocIds.push(d.id);
-            if (uData.username) matchedDocIds.push(uData.username);
-          }
+          userMapping[docId] = uName || uUser;
+          if (uUser) userMapping[uUser] = uName || uUser;
+          if (uName) userMapping[uName] = uName;
         });
 
-        matchedDocIds = [...new Set(matchedDocIds)];
-        if (matchedDocIds.length === 0) {
-          matchedDocIds.push(personName.toLowerCase().trim());
-        }
-
         const expSnap = await db.collection("expenses").get();
-        let importedTotal = 0;
+        let totalsPerMember = {};
 
         expSnap.forEach(expDoc => {
           const expData = expDoc.data();
-          if (expData.createdAt && matchedDocIds.includes(expData.userDocId)) {
+          if (expData.createdAt) {
             const date = expData.createdAt.toDate ? expData.createdAt.toDate() : new Date(expData.createdAt);
             if (date.getMonth() === targetMonthIndex && date.getFullYear() === targetYear) {
-              importedTotal += Number(expData.amount || 0);
+              const matchedName = userMapping[expData.userDocId] || expData.userDocId;
+              totalsPerMember[matchedName] = (totalsPerMember[matchedName] || 0) + Number(expData.amount || 0);
             }
           }
         });
 
-        if (importedTotal === 0) {
-          return alert(`${personName} এর ${monthStr} ${targetYear} মাসের কোনো বাজার এন্ট্রি পাওয়া যায়নি!`);
+        let updatedBazar = { ...bazarDataCalc };
+        let count = 0;
+
+        if (selectedPerson) {
+          const amt = totalsPerMember[selectedPerson] || 0;
+          if (amt === 0) return alert(`${selectedPerson} এর ${monthStr} ${targetYear} মাসের কোনো বাজার এন্ট্রি পাওয়া যায়নি!`);
+          updatedBazar[selectedPerson] = amt;
+          count++;
+        } else {
+          for (let name in totalsPerMember) {
+            updatedBazar[name] = totalsPerMember[name];
+            if (!userListCalc.includes(name)) userListCalc.push(name);
+            count++;
+          }
         }
 
-        await set(ref(rtdb, `months/${currentMonthCalc}/bazarData/${personName}`), importedTotal);
-        alert(`সফলভাবে ${personName} এর ${importedTotal} টাকা ইমপোর্ট ও সেভ করা হয়েছে!`);
+        if (count === 0) {
+          return alert(`${monthStr} ${targetYear} মাসের কোনো সদস্যের বাজার ডাটা পাওয়া যায়নি!`);
+        }
+
+        await db.collection('calc_monthly_data').doc(currentMonthCalc).set({
+          bazarData: updatedBazar,
+          userList: userListCalc
+        }, { merge: true });
+
+        alert(`সফলভাবে ${count} জন সদস্যের বাজার খরচ ইমপোর্ট করা হয়েছে!`);
       } catch (err) {
         alert("ইমপোর্ট এরর: " + err.message);
       }
     }
 
-    function clearUserBazarEngine() {
+    async function clearUserBazarEngine() {
       const personName = document.getElementById("bazarPerson").value;
       if (!personName) return alert("মেম্বারের নাম সিলেক্ট করুন!");
 
       if (!confirm(`${personName} এর বাজার মুছে ফেলতে চান?`)) return;
 
-      remove(ref(rtdb, `months/${currentMonthCalc}/bazarData/${personName}`))
-        .then(() => alert("বাজার মুছে ফেলা হয়েছে!"));
+      delete bazarDataCalc[personName];
+
+      try {
+        await db.collection('calc_monthly_data').doc(currentMonthCalc).update({
+          [`bazarData.${personName}`]: firebase.firestore.FieldValue.delete()
+        });
+        alert("বাজার মুছে ফেলা হয়েছে!");
+      } catch(err) {
+        alert("ত্রুটি: " + err.message);
+      }
     }
 
     function calculateMillRateEngine() {
@@ -2190,7 +2198,7 @@
       if(millCostInput) millCostInput.value = cost || '';
     }
 
-    function submitUserEngine(name) {
+    async function submitUserEngine(name) {
       const mill = +document.getElementById(`mill_${name}`).value;
       const millCount = +document.getElementById(`addMill_${name}`).value;
       const util = +document.getElementById(`util_${name}`).value;
@@ -2209,23 +2217,35 @@
         status
       };
 
-      set(ref(rtdb, `months/${currentMonthCalc}/reportData/${name}`), singleUserData)
-        .then(() => alert(`${name} এর হিসাব সংরক্ষিত হয়েছে।`));
+      try {
+        await db.collection('calc_monthly_data').doc(currentMonthCalc).set({
+          reportData: { [name]: singleUserData }
+        }, { merge: true });
+        alert(`${name} এর হিসাব সংরক্ষিত হয়েছে।`);
+      } catch (err) {
+        alert("ত্রুটি: " + err.message);
+      }
     }
 
-    function addUserEngine() {
+    async function addUserEngine() {
       const nameInput = document.getElementById("newUserName");
       const name = nameInput.value.trim();
       if (!name) return alert("দয়া করে নাম লিখুন!");
       if (userListCalc.includes(name)) return alert("এই নাম ইতিমধ্যে রয়েছে!");
       
       userListCalc.push(name);
-      set(ref(rtdb, `months/${currentMonthCalc}/userList`), userListCalc);
-      renderUsersEngine();
-      nameInput.value = "";
+      try {
+        await db.collection('calc_monthly_data').doc(currentMonthCalc).set({
+          userList: userListCalc
+        }, { merge: true });
+        renderUsersEngine();
+        nameInput.value = "";
+      } catch (err) {
+        alert("ত্রুটি: " + err.message);
+      }
     }
 
-    function handleActionEngine(dropdown) {
+    async function handleActionEngine(dropdown) {
       const val = dropdown.value;
       if (!val) return;
       const [action, name] = val.split(":");
@@ -2236,20 +2256,25 @@
           const idx = userListCalc.indexOf(name);
           if (idx !== -1) {
             userListCalc[idx] = trimmedName;
-            set(ref(rtdb, `months/${currentMonthCalc}/userList`), userListCalc);
 
-            if (bazarDataCalc[name]) {
-              set(ref(rtdb, `months/${currentMonthCalc}/bazarData/${trimmedName}`), bazarDataCalc[name]);
-              remove(ref(rtdb, `months/${currentMonthCalc}/bazarData/${name}`));
-            }
+            let updates = {
+              userList: userListCalc,
+              [`bazarData.${trimmedName}`]: bazarDataCalc[name] || 0,
+              [`bazarData.${name}`]: firebase.firestore.FieldValue.delete()
+            };
+
+            await db.collection('calc_monthly_data').doc(currentMonthCalc).update(updates);
           }
         }
       }
       if (action === "delete") {
         if (!confirm(`আপনি কি নিশ্চিত যে ${name} কে বাদ দিবেন?`)) return;
         userListCalc = userListCalc.filter(u => u !== name);
-        set(ref(rtdb, `months/${currentMonthCalc}/userList`), userListCalc);
-        remove(ref(rtdb, `months/${currentMonthCalc}/bazarData/${name}`));
+        await db.collection('calc_monthly_data').doc(currentMonthCalc).update({
+          userList: userListCalc,
+          [`bazarData.${name}`]: firebase.firestore.FieldValue.delete(),
+          [`reportData.${name}`]: firebase.firestore.FieldValue.delete()
+        });
       }
       dropdown.value = "";
       renderUsersEngine();
