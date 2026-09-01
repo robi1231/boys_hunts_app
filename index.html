@@ -414,11 +414,18 @@
             <p id="dashboardSubtitle" class="text-xs sm:text-sm text-slate-500 mt-1">Your personal market expenses dashboard</p>
             
             <!-- Month Creation & Selection Form with GO Button -->
-            <div class="flex flex-wrap items-center gap-2 mt-3 bg-white/80 p-2 rounded-2xl border border-blue-100 max-w-fit shadow-sm">
-              <span onclick="triggerMonthSelectFocus()" class="text-xs font-bold text-slate-600 pl-1 cursor-pointer select-none hover:text-blue-600 transition">
-                <i class="fa-solid fa-calendar-days text-blue-600 mr-1"></i> Month:
-              </span>
-              <select id="createMonthSelect" onchange="checkAuthForMonthChange(event)" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80 cursor-pointer">
+            <div class="flex flex-wrap items-center gap-2 mt-3 bg-white/80 p-2 rounded-2xl border border-blue-100 max-w-fit shadow-sm relative">
+              
+              <!-- Hidden native Month Calendar input for instant popup picking -->
+              <input type="month" id="hiddenMonthCalendarPicker" onchange="handleCalendarDatePicked(this.value)" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;">
+
+              <!-- Clickable Month/Calendar Title -->
+              <div onclick="triggerMonthCalendarPicker()" class="flex items-center gap-1.5 px-2 py-1 rounded-xl hover:bg-blue-100/70 cursor-pointer select-none transition group" title="Click to open calendar">
+                <i class="fa-solid fa-calendar-days text-blue-600 group-hover:scale-110 transition"></i>
+                <span class="text-xs font-bold text-slate-700">Month:</span>
+              </div>
+
+              <select id="createMonthSelect" onfocus="interceptSelectFocus(event)" onchange="handleMonthDropdownChange(event)" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80 cursor-pointer">
                 <option value="0">January</option>
                 <option value="1">February</option>
                 <option value="2">March</option>
@@ -432,7 +439,7 @@
                 <option value="10">November</option>
                 <option value="11">December</option>
               </select>
-              <select id="createYearSelect" onchange="checkAuthForMonthChange(event)" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80 cursor-pointer">
+              <select id="createYearSelect" onfocus="interceptSelectFocus(event)" onchange="handleMonthDropdownChange(event)" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80 cursor-pointer">
                 <option value="2025">2025</option>
                 <option value="2026">2026</option>
                 <option value="2027">2027</option>
@@ -1001,26 +1008,48 @@
       initPaymentAccountsEngine();
     };
 
-    // Trigger Focus on Month Select when clicking on "Month:" or Calendar Icon
-    window.triggerMonthSelectFocus = function() {
+    // OPEN NATIVE POPUP CALENDAR
+    window.triggerMonthCalendarPicker = function() {
       if (!currentUser) {
-        showAlert('Please login to select or edit month!', 'error');
+        showAlert('Please login first to pick month/date!', 'error');
         toggleLoginModal(true);
         return;
       }
-      const select = document.getElementById('createMonthSelect');
-      if (select) {
-        select.focus();
-        try { select.showPicker(); } catch(e) {}
+      const picker = document.getElementById('hiddenMonthCalendarPicker');
+      if (picker) {
+        const curM = parseInt(document.getElementById('createMonthSelect').value) + 1;
+        const curY = document.getElementById('createYearSelect').value;
+        picker.value = `${curY}-${curM < 10 ? '0' + curM : curM}`;
+        try {
+          picker.showPicker();
+        } catch(err) {
+          picker.focus();
+        }
       }
     };
 
-    // Check login before changing month/year
-    window.checkAuthForMonthChange = function(e) {
+    window.handleCalendarDatePicked = function(val) {
+      if (!val) return;
+      const [y, m] = val.split('-');
+      document.getElementById('createMonthSelect').value = parseInt(m) - 1;
+      document.getElementById('createYearSelect').value = parseInt(y);
+      applyMonthFilter();
+    };
+
+    // RESTRICT SELECT FOR GUEST USERS
+    window.interceptSelectFocus = function(e) {
       if (!currentUser) {
+        e.target.blur();
         showAlert('Please login first to edit date or change month!', 'error');
         toggleLoginModal(true);
-        const now = new Date();
+      }
+    };
+
+    window.handleMonthDropdownChange = function(e) {
+      if (!currentUser) {
+        e.preventDefault();
+        showAlert('Please login first to edit date or change month!', 'error');
+        toggleLoginModal(true);
         document.getElementById('createMonthSelect').value = selectedDetailMonth;
         document.getElementById('createYearSelect').value = selectedDetailYear;
       }
@@ -2322,7 +2351,7 @@
       renderUsersEngine();
     }
 
-    // ACCURATE REPORT GENERATOR (WORKS LIVE AND FROM SAVED DATA FOR ANY MONTH)
+    // ACCURATE REPORT GENERATOR
     async function generateReportEngine() {
       const [monthStr, yearStr] = currentMonthCalc.split("_");
       const targetMonthIndex = monthsArr.indexOf(monthStr);
@@ -2339,7 +2368,6 @@
         console.error(e);
       }
 
-      // If no manually submitted report is found, build dynamic live report from current table inputs / Firestore
       if (Object.keys(reportData).length === 0) {
         let hasAnyInput = false;
         userListCalc.forEach(name => {
