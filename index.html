@@ -109,7 +109,7 @@
       .calc-action-group { flex-direction: column; }
     }
 
-    /* STYLES FOR PAYMENT ACCOUNTS (2ND APP) */
+    /* STYLES FOR PAYMENT ACCOUNTS */
     :root {
       --app-bg: #e6eaf8; 
       --card-bg: #ffffff;
@@ -415,10 +415,10 @@
             
             <!-- Month Creation & Selection Form with GO Button -->
             <div class="flex flex-wrap items-center gap-2 mt-3 bg-white/80 p-2 rounded-2xl border border-blue-100 max-w-fit shadow-sm">
-              <label for="createMonthSelect" class="text-xs font-bold text-slate-600 pl-1 cursor-pointer select-none">
+              <span onclick="triggerMonthSelectFocus()" class="text-xs font-bold text-slate-600 pl-1 cursor-pointer select-none hover:text-blue-600 transition">
                 <i class="fa-solid fa-calendar-days text-blue-600 mr-1"></i> Month:
-              </label>
-              <select id="createMonthSelect" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80 cursor-pointer">
+              </span>
+              <select id="createMonthSelect" onchange="checkAuthForMonthChange(event)" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80 cursor-pointer">
                 <option value="0">January</option>
                 <option value="1">February</option>
                 <option value="2">March</option>
@@ -432,7 +432,7 @@
                 <option value="10">November</option>
                 <option value="11">December</option>
               </select>
-              <select id="createYearSelect" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80 cursor-pointer">
+              <select id="createYearSelect" onchange="checkAuthForMonthChange(event)" class="soft-input text-xs font-bold rounded-xl px-2.5 py-1 text-slate-700 border-none bg-blue-50/80 cursor-pointer">
                 <option value="2025">2025</option>
                 <option value="2026">2026</option>
                 <option value="2027">2027</option>
@@ -697,7 +697,7 @@
     </div>
   </div>
 
-  <!-- PAYMENT ACCOUNTS FULL PAGE VIEW (2ND CODE APP) -->
+  <!-- PAYMENT ACCOUNTS FULL PAGE VIEW -->
   <div id="paymentAccountsFullPageView" class="hidden acc-page-wrapper">
     <div class="w-full max-w-[600px] mb-3 flex justify-between items-center px-2">
       <button onclick="closePaymentAccountsFullPage()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-md">
@@ -999,6 +999,31 @@
 
       initCalculatorEngine();
       initPaymentAccountsEngine();
+    };
+
+    // Trigger Focus on Month Select when clicking on "Month:" or Calendar Icon
+    window.triggerMonthSelectFocus = function() {
+      if (!currentUser) {
+        showAlert('Please login to select or edit month!', 'error');
+        toggleLoginModal(true);
+        return;
+      }
+      const select = document.getElementById('createMonthSelect');
+      if (select) {
+        select.focus();
+        try { select.showPicker(); } catch(e) {}
+      }
+    };
+
+    // Check login before changing month/year
+    window.checkAuthForMonthChange = function(e) {
+      if (!currentUser) {
+        showAlert('Please login first to edit date or change month!', 'error');
+        toggleLoginModal(true);
+        const now = new Date();
+        document.getElementById('createMonthSelect').value = selectedDetailMonth;
+        document.getElementById('createYearSelect').value = selectedDetailYear;
+      }
     };
 
     async function checkDefaultAdmin() {
@@ -2216,10 +2241,10 @@
     }
 
     async function submitUserEngine(name) {
-      const mill = +document.getElementById(`mill_${name}`).value;
-      const millCount = +document.getElementById(`addMill_${name}`).value;
-      const util = +document.getElementById(`util_${name}`).value;
-      const bazar = +document.getElementById(`bazar_${name}`).value;
+      const mill = +document.getElementById(`mill_${name}`).value || 0;
+      const millCount = +document.getElementById(`addMill_${name}`).value || 0;
+      const util = +document.getElementById(`util_${name}`).value || 0;
+      const bazar = +document.getElementById(`bazar_${name}`).value || 0;
 
       const total = mill + util - bazar;
       const status = total > 0 ? "দিবে" : total < 0 ? "পাবে" : "ম্যাচ পাবে";
@@ -2297,21 +2322,58 @@
       renderUsersEngine();
     }
 
+    // ACCURATE REPORT GENERATOR (WORKS LIVE AND FROM SAVED DATA FOR ANY MONTH)
     async function generateReportEngine() {
-      let reportData = userDataCalc;
+      const [monthStr, yearStr] = currentMonthCalc.split("_");
+      const targetMonthIndex = monthsArr.indexOf(monthStr);
+      const targetYear = parseInt(yearStr);
 
-      // Ensure data is freshly fetched from database
+      let reportData = {};
+
       try {
         const snap = await db.collection('calc_monthly_data').doc(currentMonthCalc).get();
-        if (snap.exists && snap.data().reportData) {
+        if (snap.exists && snap.data().reportData && Object.keys(snap.data().reportData).length > 0) {
           reportData = snap.data().reportData;
         }
       } catch (e) {
         console.error(e);
       }
 
-      if (!reportData || Object.keys(reportData).length === 0) {
-        return alert("নির্বাচিত মাসের জন্য কোনো সংরক্ষিত হিসাব পাওয়া যায়নি! আগে মেম্বারদের হিসাব Submit করুন।");
+      // If no manually submitted report is found, build dynamic live report from current table inputs / Firestore
+      if (Object.keys(reportData).length === 0) {
+        let hasAnyInput = false;
+        userListCalc.forEach(name => {
+          const millInput = document.getElementById(`mill_${name}`);
+          const millCountInput = document.getElementById(`addMill_${name}`);
+          const utilInput = document.getElementById(`util_${name}`);
+          const bazarInput = document.getElementById(`bazar_${name}`);
+
+          const mill = millInput ? +millInput.value || 0 : 0;
+          const millCount = millCountInput ? +millCountInput.value || 0 : 0;
+          const util = utilInput ? +utilInput.value || 0 : 0;
+          const bazar = bazarInput ? +bazarInput.value || 0 : (bazarDataCalc[name] || 0);
+
+          if (mill > 0 || millCount > 0 || util > 0 || bazar > 0) {
+            hasAnyInput = true;
+          }
+
+          const total = mill + util - bazar;
+          const status = total > 0 ? "দিবে" : total < 0 ? "পাবে" : "ম্যাচ পাবে";
+
+          reportData[name] = {
+            name,
+            mill,
+            millCount,
+            util,
+            bazar,
+            total: Math.abs(total).toFixed(2),
+            status
+          };
+        });
+
+        if (!hasAnyInput) {
+          return alert(`${monthStr} ${targetYear} এর জন্য কোনো বাজার বা হিসাব পাওয়া যায়নি!`);
+        }
       }
 
       let totalMillCost = 0;
