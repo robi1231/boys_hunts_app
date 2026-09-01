@@ -904,7 +904,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, getDocs, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // FIREBASE CONFIGURATION (BAZAR-5642D) - FIRESTORE DATABASE
+    // FIREBASE CONFIGURATION (FIRESTORE)
     const firebaseConfig = {
       apiKey: "AIzaSyCzssLwY4H2_qZbpeCdF-tD2Fadjv7hkjA",
       authDomain: "bazar-5642d.firebaseapp.com",
@@ -957,8 +957,7 @@
     let millRate = 0;
     let userDataCalc = {};
     let bazarDataCalc = {};
-    let defaultUsersCalc = ["Robi", "Nadim", "Noman", "Bosir", "Tanjil", "Sadik"];
-    let userListCalc = [...defaultUsersCalc];
+    let userListCalc = [];
     let currentMonthCalc = "";
     let calcMonthUnsub = null;
 
@@ -1897,7 +1896,7 @@
       }
     }
 
-    // CALCULATOR ENGINE LOGIC (FIRESTORE SYNCED)
+    // CALCULATOR ENGINE LOGIC (AUTO-SYNCED WITH FIRESTORE MAIN DASHBOARD)
     function initCalculatorEngine() {
       const selectMonthElCalc = document.getElementById("currentMonth");
       
@@ -1921,8 +1920,6 @@
       currentMonthCalc = `${monthsEnglish[currentMonthIndex]}_${currentYear}`;
       selectMonthElCalc.value = currentMonthCalc;
 
-      renderUsersEngine();
-
       selectMonthElCalc.addEventListener('change', (e) => {
         currentMonthCalc = e.target.value;
         syncCalculatorData();
@@ -1937,43 +1934,71 @@
       document.getElementById("reportBtn").addEventListener('click', generateReportEngine);
       document.getElementById("manageUserSelect").addEventListener('change', (e) => handleActionEngine(e.target));
 
-      // Auto sync Firestore users to calculator user list
+      // Auto sync all members from Firestore Dashboard
       db.collection('app_users').where('role', '==', 'member').onSnapshot(snap => {
         let fsNames = [];
         snap.forEach(doc => {
           if (doc.data().name) fsNames.push(doc.data().name.trim());
         });
         if (fsNames.length > 0) {
-          userListCalc = [...new Set([...userListCalc, ...fsNames])];
-          renderUsersEngine();
+          userListCalc = [...new Set([...fsNames])];
+          syncCalculatorData();
         }
       });
-
-      syncCalculatorData();
     }
 
     function syncCalculatorData() {
       if (calcMonthUnsub) calcMonthUnsub();
 
+      const [monthStr, yearStr] = currentMonthCalc.split("_");
+      const targetMonthIndex = monthsArr.indexOf(monthStr);
+      const targetYear = parseInt(yearStr);
+
       const docRef = db.collection('calc_monthly_data').doc(currentMonthCalc);
-      calcMonthUnsub = docRef.onSnapshot(snapshot => {
+      calcMonthUnsub = docRef.onSnapshot(async (snapshot) => {
+        let savedBazarData = {};
+        let savedReportData = {};
+
         if (snapshot.exists) {
           const data = snapshot.data();
-          if (data.userList && Array.isArray(data.userList)) {
-            userListCalc = [...new Set([...userListCalc, ...data.userList])];
-          }
-          bazarDataCalc = data.bazarData || {};
-          userDataCalc = data.reportData || {};
-        } else {
-          docRef.set({
-            userList: userListCalc,
-            bazarData: {},
-            reportData: {}
-          }, { merge: true });
-          bazarDataCalc = {};
-          userDataCalc = {};
+          savedBazarData = data.bazarData || {};
+          savedReportData = data.reportData || {};
         }
-        renderUsersEngine();
+
+        // Auto-fetch expenses for all members for this month
+        try {
+          const usersSnap = await db.collection("app_users").get();
+          let userMapping = {};
+          usersSnap.forEach(d => {
+            const u = d.data();
+            const uName = (u.name || "").trim();
+            userMapping[d.id] = uName;
+            if (u.username) userMapping[u.username] = uName;
+          });
+
+          const expSnap = await db.collection("expenses").get();
+          let autoFetchedBazar = {};
+
+          expSnap.forEach(expDoc => {
+            const expData = expDoc.data();
+            if (expData.createdAt) {
+              const date = expData.createdAt.toDate ? expData.createdAt.toDate() : new Date(expData.createdAt);
+              if (date.getMonth() === targetMonthIndex && date.getFullYear() === targetYear) {
+                const matchedName = userMapping[expData.userDocId] || expData.userDocId;
+                autoFetchedBazar[matchedName] = (autoFetchedBazar[matchedName] || 0) + Number(expData.amount || 0);
+              }
+            }
+          });
+
+          bazarDataCalc = { ...autoFetchedBazar, ...savedBazarData };
+          userDataCalc = savedReportData;
+          renderUsersEngine();
+        } catch (e) {
+          console.error("Auto fetch error:", e);
+          bazarDataCalc = savedBazarData;
+          userDataCalc = savedReportData;
+          renderUsersEngine();
+        }
       });
     }
 
@@ -2094,7 +2119,7 @@
       }
     }
 
-    // ACCURATE BAZAR IMPORT FROM FIRESTORE DATABASE (DIRECT AUTO MATCH)
+    // ACCURATE BAZAR IMPORT FROM MAIN DASHBOARD
     async function importBazarEngine() {
       const [monthStr, yearStr] = currentMonthCalc.split("_");
       const targetMonthIndex = monthsArr.indexOf(monthStr);
@@ -2107,13 +2132,9 @@
 
         usersSnap.forEach(d => {
           const u = d.data();
-          const docId = d.id;
           const uName = (u.name || "").trim();
-          const uUser = (u.username || "").trim();
-
-          userMapping[docId] = uName || uUser;
-          if (uUser) userMapping[uUser] = uName || uUser;
-          if (uName) userMapping[uName] = uName;
+          userMapping[d.id] = uName;
+          if (u.username) userMapping[u.username] = uName;
         });
 
         const expSnap = await db.collection("expenses").get();
@@ -2141,7 +2162,6 @@
         } else {
           for (let name in totalsPerMember) {
             updatedBazar[name] = totalsPerMember[name];
-            if (!userListCalc.includes(name)) userListCalc.push(name);
             count++;
           }
         }
@@ -2151,11 +2171,10 @@
         }
 
         await db.collection('calc_monthly_data').doc(currentMonthCalc).set({
-          bazarData: updatedBazar,
-          userList: userListCalc
+          bazarData: updatedBazar
         }, { merge: true });
 
-        alert(`সফলভাবে ${count} জন সদস্যের বাজার খরচ ইমপোর্ট করা হয়েছে!`);
+        alert(`সফলভাবে মূল ড্যাশবোর্ড থেকে বাজার খরচ ইমপোর্ট ও সেভ করা হয়েছে!`);
       } catch (err) {
         alert("ইমপোর্ট এরর: " + err.message);
       }
