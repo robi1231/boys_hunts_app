@@ -1142,7 +1142,6 @@
       const selectedMonth = parseInt(document.getElementById('createMonthSelect').value);
       const selectedYear = parseInt(document.getElementById('createYearSelect').value);
 
-      // Check if month exists, if not add it dynamically so cards can display
       const exists = createdMonths.some(m => m.month === selectedMonth && m.year === selectedYear);
       if (!exists) {
         createdMonths.unshift({ month: selectedMonth, year: selectedYear });
@@ -1195,7 +1194,6 @@
             `;
             grid.appendChild(cardDiv);
 
-            // Fetch total expense for this user and specific selected month
             db.collection('expenses').where('userDocId', '==', userId).onSnapshot(expSnap => {
               let total = 0;
               expSnap.forEach(expDoc => {
@@ -1265,7 +1263,6 @@
 
       const entryForm = document.getElementById('addExpenseForm');
       
-      // PERMISSION CHECK: Admin or Exact Account Owner
       const canEdit = currentUser && (
         currentUser.role === 'admin' || 
         currentUser.docId === userDocId || 
@@ -1313,7 +1310,6 @@
         return;
       }
 
-      // FIX: ASCENDING ORDER SORTING (পুরোনো তারিখ থেকে নতুন তারিখ ক্রমানুসারে সাজানো)
       docs.sort((a, b) => {
         let timeA = a.parsedDate ? a.parsedDate.getTime() : Date.now();
         let timeB = b.parsedDate ? b.parsedDate.getTime() : Date.now();
@@ -1552,7 +1548,6 @@
         let contentBody = '';
 
         if (selectedUserId === 'all') {
-          // PAGE 1: Grand Total Summary
           let memberTotals = {};
           filteredExpenses.forEach(exp => {
             let uName = userMap[exp.userDocId] || exp.userDocId;
@@ -1608,7 +1603,6 @@
             </div>
           `;
 
-          // SUBSEQUENT PAGES: Member details
           let expensesByMember = {};
           filteredExpenses.forEach(exp => {
             let uName = userMap[exp.userDocId] || exp.userDocId;
@@ -1675,7 +1669,6 @@
           }
 
         } else {
-          // SINGLE MEMBER REPORT
           let rowsHtml = '';
           filteredExpenses.forEach((item, index) => {
             const dateStr = item.parsedDate.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
@@ -1921,7 +1914,7 @@
       }
     }
 
-    // CALCULATOR ENGINE LOGIC
+    // CALCULATOR ENGINE LOGIC (FIXED)
     function initCalculatorEngine() {
       const selectMonthElCalc = document.getElementById("currentMonth");
       
@@ -1933,7 +1926,7 @@
       const currentMonthIndex = d.getMonth();
       
       selectMonthElCalc.innerHTML = "";
-      for (let year = currentYear; year <= currentYear + 1; year++) {
+      for (let year = currentYear - 1; year <= currentYear + 1; year++) {
         for (let i = 0; i < 12; i++) {
           let option = document.createElement("option");
           option.value = `${monthsEnglish[i]}_${year}`;
@@ -1989,10 +1982,14 @@
 
     function renderUsersEngine() {
       const bazarSelect = document.getElementById("bazarPerson");
+      const currentSelectedVal = bazarSelect.value;
       bazarSelect.innerHTML = '<option value="">নাম নির্বাচন করুন</option>';
       userListCalc.forEach(name => {
         bazarSelect.innerHTML += `<option value="${name}">${name}</option>`;
       });
+      if (userListCalc.includes(currentSelectedVal)) {
+        bazarSelect.value = currentSelectedVal;
+      }
 
       const manageSelect = document.getElementById("manageUserSelect");
       manageSelect.innerHTML = '<option value="">মেম্বার সিলেক্ট করুন (Action)</option>';
@@ -2087,6 +2084,7 @@
         });
     }
 
+    // FIXED IMPORT MEMBER BAZAR FUNCTION
     async function importBazarEngine() {
       const personName = document.getElementById("bazarPerson").value;
       if (!personName) return alert("দয়া করে মেম্বারের নাম সিলেক্ট করুন!");
@@ -2096,32 +2094,43 @@
       const targetYear = parseInt(yearStr);
 
       try {
-        const usersSnap = await getDocs(collection(fsDb, "app_users"));
-        let matchedDocId = null;
+        const usersSnap = await db.collection("app_users").get();
+        let matchedDocIds = [];
 
-        usersSnap.forEach(doc => {
-          if (doc.data().name && doc.data().name.toLowerCase().trim() === personName.toLowerCase().trim()) {
-            matchedDocId = doc.id;
+        usersSnap.forEach(d => {
+          const uData = d.data();
+          const nameMatch = uData.name && uData.name.toLowerCase().trim() === personName.toLowerCase().trim();
+          const userMatch = uData.username && uData.username.toLowerCase().trim() === personName.toLowerCase().trim();
+          const docIdMatch = d.id && d.id.toLowerCase().trim() === personName.toLowerCase().trim();
+
+          if (nameMatch || userMatch || docIdMatch) {
+            matchedDocIds.push(d.id);
+            if (uData.username) matchedDocIds.push(uData.username);
           }
         });
 
-        if (!matchedDocId) return alert("মেম্বার একাউন্ট পাওয়া যায়নি!");
+        matchedDocIds = [...new Set(matchedDocIds)];
 
-        const expQuery = query(collection(fsDb, "expenses"), where("userDocId", "==", matchedDocId));
-        const expSnap = await getDocs(expQuery);
+        if (matchedDocIds.length === 0) {
+          matchedDocIds.push(personName.toLowerCase().trim());
+        }
 
+        const expSnap = await db.collection("expenses").get();
         let importedTotal = 0;
-        expSnap.forEach(doc => {
-          const data = doc.data();
-          if (data.createdAt) {
-            const date = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+
+        expSnap.forEach(expDoc => {
+          const expData = expDoc.data();
+          if (expData.createdAt && matchedDocIds.includes(expData.userDocId)) {
+            const date = expData.createdAt.toDate ? expData.createdAt.toDate() : new Date(expData.createdAt);
             if (date.getMonth() === targetMonthIndex && date.getFullYear() === targetYear) {
-              importedTotal += Number(data.amount || 0);
+              importedTotal += Number(expData.amount || 0);
             }
           }
         });
 
-        if (importedTotal === 0) return alert("কোনো বাজার ডাটা পাওয়া যায়নি!");
+        if (importedTotal === 0) {
+          return alert(`${personName} এর ${monthStr} ${targetYear} মাসের কোনো বাজার এন্ট্রি পাওয়া যায়নি!`);
+        }
 
         await set(ref(rtdb, `months/${currentMonthCalc}/bazarData/${personName}`), importedTotal);
         alert(`সফলভাবে ${personName} এর ${importedTotal} টাকা ইমপোর্ট ও সেভ করা হয়েছে!`);
@@ -2362,7 +2371,7 @@
       window.scrollTo(0, 0);
     }
 
-    // PAYMENT ACCOUNTS ENGINE LOGIC (2ND CODE FUNCTIONS)
+    // PAYMENT ACCOUNTS ENGINE LOGIC
     function initPaymentAccountsEngine() {
       onSnapshot(membersColAcc, (snapshot) => {
         membersDataAcc = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
